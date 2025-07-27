@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm:*)",
+      "Bash(go generate:*)",
+      "Bash(go build:*)",
+      "Bash(mv:*)",
+      "Bash(go mod:*)",
+      "Bash(rg:*)",
+      "Bash(go test:*)",
+      "Bash(find:*)",
+      "Bash(swag:*)",
+      "Bash(grep:*)",
+      "Bash(make:*)",
+      "Bash(/Users/leng/go/bin/swag init -g cmd/server/main.go --output docs --parseDependency --parseInternal --quiet)",
+      "Bash(git add:*)",
+      "mcp__dbhub-mysql-npx__execute_sql"
+    ],
+    "deny": []
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "dbhub-mysql-npx",
+    "context7"
+  ]
+}

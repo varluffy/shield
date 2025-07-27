@@ -1,0 +1,100 @@
+run:
+  timeout: 5m
+  go: "1.21"
+
+linters-settings:
+  # 检测过时的interface{}用法
+  gofumpt:
+    lang-version: "1.21"
+    extra-rules: true
+
+  # 检测未使用的代码
+  unused:
+    check-exported: false
+
+  # 检测复杂度
+  cyclop:
+    max-complexity: 15
+
+  # 检测函数长度
+  funlen:
+    lines: 80
+    statements: 50
+
+  # 检测过时的写法
+  stylecheck:
+    checks: ["all"]
+
+  # 检测导入包的问题
+  goimports:
+    local-prefixes: github.com/yourusername/ultrafit
+
+  # 检测错误处理
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+
+  # 检测安全问题
+  gosec:
+    excludes:
+      - G404 # 随机数生成器（开发环境可接受）
+
+linters:
+  enable:
+    # 代码质量
+    - errcheck        # 检查错误处理
+    - gosimple        # 简化代码建议
+    - govet           # Go官方检查器
+    - ineffassign     # 检测无效赋值
+    - staticcheck     # 静态分析
+    - typecheck       # 类型检查
+    - unused          # 未使用代码
+    
+    # 代码风格
+    - gofumpt         # 严格的gofmt
+    - goimports       # 导入排序
+    - stylecheck      # 风格检查
+    - whitespace      # 空白字符检查
+    
+    # 最佳实践
+    - unconvert       # 不必要的类型转换
+    - unparam         # 未使用的函数参数
+    - gochecknoinits  # 检查init函数
+    - goconst         # 可以提取为常量的字符串
+    - gocritic        # 全面的代码审查
+    
+    # 性能相关
+    - prealloc        # 预分配slice
+    - nolintlint      # lint指令检查
+    
+    # 安全相关
+    - gosec           # 安全检查
+    
+    # 现代Go实践
+    - gofmt           # 格式化
+    - gci             # 导入分组
+
+  disable:
+    - deadcode        # 已废弃，用unused替代
+    - varcheck        # 已废弃，用unused替代
+    - structcheck     # 已废弃，用unused替代
+    - scopelint       # 已废弃
+
+issues:
+  # 排除测试文件的某些检查
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - funlen
+        - gocyclo
+        - errcheck
+        - gosec
+    
+    # 排除生成的代码
+    - path: wire_gen\.go
+      linters:
+        - all
+
+  # 显示所有问题
+  max-issues-per-linter: 0
+  max-same-issues: 0 

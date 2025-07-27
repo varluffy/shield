@@ -1,0 +1,362 @@
+// Package test contains integration tests and API examples.
+// It provides comprehensive testing scenarios for the application.
+package test
+
+import (
+	"bytes"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
+	"gitlab.creditease.corp/aigc/ultrafit/internal/config"
+	"gitlab.creditease.corp/aigc/ultrafit/internal/database"
+	"gitlab.creditease.corp/aigc/ultrafit/internal/dto"
+	"gitlab.creditease.corp/aigc/ultrafit/internal/handlers"
+	"gitlab.creditease.corp/aigc/ultrafit/internal/repositories"
+	"gitlab.creditease.corp/aigc/ultrafit/internal/routes"
+	"gitlab.creditease.corp/aigc/ultrafit/internal/services"
+	"gitlab.creditease.corp/aigc/ultrafit/pkg/errors"
+	"gitlab.creditease.corp/aigc/ultrafit/pkg/logger"
+	"gitlab.creditease.corp/aigc/ultrafit/pkg/response"
+	"gitlab.creditease.corp/aigc/ultrafit/pkg/transaction"
+)
+
+// TestUnifiedResponseAndLogging 测试统一响应和增强日志功能
+func TestUnifiedResponseAndLogging(t *testing.T) {
+	// 设置测试环境
+	gin.SetMode(gin.TestMode)
+
+	// 创建测试配置
+	cfg := &config.Config{
+		App: config.AppConfig{
+			Name:        "ultrafit-test",
+			Version:     "1.0.0",
+			Environment: "test",
+		},
+		Database: config.DatabaseConfig{
+			Host:     "localhost",
+			Port:     3306,
+			User:     "test",
+			Password: "test",
+			Name:     "test_db",
+		},
+		Server: config.ServerConfig{
+			Host: "localhost",
+			Port: 8080,
+			CORS: config.CORSConfig{
+				AllowOrigins: []string{"*"},
+				AllowMethods: []string{"GET", "POST", "PUT", "DELETE"},
+				AllowHeaders: []string{"*"},
+			},
+		},
+		Jaeger: &config.JaegerConfig{
+			Enabled:    false, // 测试时禁用Jaeger
+			OTLPURL:    "http://localhost:4318/v1/traces",
+			SampleRate: 1.0,
+		},
+	}
+
+	// 创建日志器
+	testLogger, err := logger.NewLogger("test")
+	assert.NoError(t, err)
+
+	// 创建测试数据库连接 (简化的MySQL连接，如果失败则跳过测试)
+	db, err := database.NewMySQLConnection(cfg.Database, testLogger.Logger)
+	if err != nil {
+		t.Skipf("Skip test due to database connection error: %v", err)
+		return
+	}
+
+	// 自动迁移
+	if err := database.AutoMigrate(db); err != nil {
+		t.Skipf("Skip test due to migration error: %v", err)
+		return
+	}
+
+	// 创建事务管理器
+	txManager := transaction.NewTransactionManager(db, testLogger.Logger)
+
+	// 创建Repository和Service
+	userRepo := repositories.NewUserRepository(db, txManager, testLogger)
+	userService := services.NewUserService(userRepo, testLogger, txManager, jwtService, captchaService)
+	userHandler := handlers.NewUserHandler(userService, testLogger)
+
+	// 设置路由
+	router := routes.SetupRoutes(cfg, testLogger, userHandler, captchaHandler, authMiddleware)
+
+	t.Run("Test Create User Success", func(t *testing.T) {
+		// 准备请求数据
+		reqBody := dto.CreateUserRequest{
+			Name:     "测试用户",
+			Email:    "test@example.com",
+			Password: "password123",
+		}
+
+		reqJSON, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest("POST", "/api/v1/users", bytes.NewBuffer(reqJSON))
+		req.Header.Set("Content-Type", "application/json")
+
+		// 执行请求
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		// 验证响应
+		assert.Equal(t, http.StatusCreated, w.Code)
+
+		var resp response.Response
+		err := json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.NoError(t, err)
+
+		// 验证统一响应格式
+		assert.Equal(t, errors.CodeSuccess, resp.Code)
+		assert.Equal(t, "created", resp.Message)
+		assert.NotNil(t, resp.Data)
+		assert.NotEmpty(t, resp.TraceID) // 验证TraceID存在
+
+		t.Logf("成功响应: %+v", resp)
+	})
+
+	t.Run("Test Create User with Duplicate Email", func(t *testing.T) {
+		// 再次尝试创建相同邮箱的用户
+		reqBody := dto.CreateUserRequest{
+			Name:     "另一个用户",
+			Email:    "test@example.com", // 相同邮箱
+			Password: "password456",
+		}
+
+		reqJSON, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest("POST", "/api/v1/users", bytes.NewBuffer(reqJSON))
+		req.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		// 验证错误响应
+		assert.Equal(t, http.StatusConflict, w.Code)
+
+		var resp response.Response
+		err := json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.NoError(t, err)
+
+		// 验证自定义业务错误码
+		assert.Equal(t, errors.CodeUserAlreadyExists, resp.Code)
+		assert.Equal(t, "用户已存在", resp.Message)
+		assert.NotEmpty(t, resp.TraceID)
+
+		t.Logf("错误响应: %+v", resp)
+	})
+
+	t.Run("Test Get Non-Existent User", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/api/v1/users/99999", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+
+		var resp response.Response
+		err := json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.NoError(t, err)
+
+		assert.Equal(t, errors.CodeUserNotFound, resp.Code)
+		assert.Equal(t, "用户不存在", resp.Message)
+
+		t.Logf("用户不存在响应: %+v", resp)
+	})
+
+	t.Run("Test Invalid JSON Request", func(t *testing.T) {
+		// 发送无效的JSON
+		req := httptest.NewRequest("POST", "/api/v1/users", bytes.NewBuffer([]byte("invalid json")))
+		req.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+
+		var resp response.Response
+		err := json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.NoError(t, err)
+
+		assert.Equal(t, errors.CodeValidationError, resp.Code)
+		assert.Contains(t, resp.Message, "Invalid request")
+
+		t.Logf("验证错误响应: %+v", resp)
+	})
+
+	t.Run("Test List Users with Pagination", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/api/v1/users?page=1&limit=10", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var resp response.PaginationResponse
+		err := json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.NoError(t, err)
+
+		// 验证分页响应格式
+		assert.Equal(t, errors.CodeSuccess, resp.Code)
+		assert.Equal(t, "success", resp.Message)
+		assert.NotNil(t, resp.Data)
+		assert.NotNil(t, resp.Meta)
+		assert.Equal(t, 1, resp.Meta.Page)
+		assert.Equal(t, 10, resp.Meta.Limit)
+
+		t.Logf("分页响应: %+v", resp)
+	})
+
+	t.Run("Test Large Request Body Logging", func(t *testing.T) {
+		// 创建一个大的请求体来测试日志截断功能
+		largeData := make([]byte, 15000) // 15KB，超过MaxLogBodySize (10KB)
+		for i := range largeData {
+			largeData[i] = 'a'
+		}
+
+		reqBody := map[string]interface{}{
+			"name":     "测试用户",
+			"email":    "large@example.com",
+			"password": "password123",
+			"extra":    string(largeData),
+		}
+
+		reqJSON, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest("POST", "/api/v1/users", bytes.NewBuffer(reqJSON))
+		req.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		// 这个请求应该失败（验证错误），但重点是测试日志记录
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+
+		t.Logf("大请求体测试完成，响应状态: %d", w.Code)
+	})
+}
+
+// TestErrorCodeMappings 测试错误码映射
+func TestErrorCodeMappings(t *testing.T) {
+	tests := []struct {
+		name           string
+		err            *errors.BusinessError
+		expectedStatus int
+		expectedCode   int
+	}{
+		{
+			name:           "User Not Found",
+			err:            errors.ErrUserNotFound(),
+			expectedStatus: http.StatusNotFound,
+			expectedCode:   errors.CodeUserNotFound,
+		},
+		{
+			name:           "User Already Exists",
+			err:            errors.ErrUserAlreadyExists(),
+			expectedStatus: http.StatusConflict,
+			expectedCode:   errors.CodeUserAlreadyExists,
+		},
+		{
+			name:           "Invalid Credentials",
+			err:            errors.ErrInvalidCredentials(),
+			expectedStatus: http.StatusUnauthorized,
+			expectedCode:   errors.CodeInvalidCredentials,
+		},
+		{
+			name:           "Validation Error",
+			err:            errors.ErrValidationFailed("测试验证失败"),
+			expectedStatus: http.StatusBadRequest,
+			expectedCode:   errors.CodeValidationError,
+		},
+		{
+			name:           "Internal Error",
+			err:            errors.ErrInternalError("内部错误测试"),
+			expectedStatus: http.StatusInternalServerError,
+			expectedCode:   errors.CodeInternalError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expectedStatus, tt.err.HTTPStatus)
+			assert.Equal(t, tt.expectedCode, tt.err.Code)
+			assert.NotEmpty(t, tt.err.Message)
+
+			t.Logf("错误 %s: Code=%d, HTTPStatus=%d, Message=%s",
+				tt.name, tt.err.Code, tt.err.HTTPStatus, tt.err.Message)
+		})
+	}
+}
+
+// TestResponseFormats 测试响应格式
+func TestResponseFormats(t *testing.T) {
+	testLogger, _ := logger.NewLogger("test")
+	responseWriter := response.NewResponseWriter(testLogger)
+
+	gin.SetMode(gin.TestMode)
+
+	t.Run("Success Response", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+
+		testData := map[string]interface{}{
+			"id":   1,
+			"name": "测试数据",
+		}
+
+		responseWriter.Success(c, testData)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var resp response.Response
+		err := json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.NoError(t, err)
+		assert.Equal(t, errors.CodeSuccess, resp.Code)
+		assert.Equal(t, "success", resp.Message)
+		assert.NotNil(t, resp.Data)
+	})
+
+	t.Run("Error Response", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+
+		responseWriter.Error(c, errors.ErrUserNotFound())
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+
+		var resp response.Response
+		err := json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.NoError(t, err)
+		assert.Equal(t, errors.CodeUserNotFound, resp.Code)
+		assert.Equal(t, "用户不存在", resp.Message)
+	})
+
+	t.Run("Pagination Response", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+
+		testData := []map[string]interface{}{
+			{"id": 1, "name": "用户1"},
+			{"id": 2, "name": "用户2"},
+		}
+
+		meta := &response.PaginationMeta{
+			Page:       1,
+			Limit:      10,
+			Total:      2,
+			TotalPages: 1,
+		}
+
+		responseWriter.Pagination(c, testData, meta)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var resp response.PaginationResponse
+		err := json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.NoError(t, err)
+		assert.Equal(t, errors.CodeSuccess, resp.Code)
+		assert.NotNil(t, resp.Data)
+		assert.NotNil(t, resp.Meta)
+		assert.Equal(t, int64(2), resp.Meta.Total)
+	})
+}

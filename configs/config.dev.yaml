@@ -1,0 +1,85 @@
+# UltraFit 开发环境配置
+app:
+  name: "ultrafit"
+  version: "1.0.0"
+  environment: "development"
+  debug: true
+  language: "zh"
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+  read_timeout: 30s
+  write_timeout: 30s
+  idle_timeout: 60s
+  cors:
+    allow_origins: ["*"]
+    allow_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    allow_headers: ["*"]
+    expose_headers: []
+    allow_credentials: true
+    max_age: 86400
+
+database:
+  host: "localhost"
+  port: 3306
+  user: "root"
+  password: "123456"
+  name: "shield"
+  timezone: "Asia/Shanghai"
+  max_open_conns: 100
+  max_idle_conns: 10
+  conn_max_lifetime: 3600s
+  conn_max_idle_time: 1800s
+  log_level: "info"
+  slow_query_threshold: "200ms"
+
+log:
+  level: "debug"
+  format: "console"
+  output: "stdout"
+
+# Redis配置 (可选) - 如不配置则使用内存存储
+redis:
+  # 启用Redis时取消注释下面的配置
+  addrs: ["localhost:6379"]
+  password: "123456"
+  db: 0
+  max_retries: 3
+  pool_size: 10
+  key_prefix: "ultrafit:"
+
+# JWT认证配置
+auth:
+  jwt:
+    secret: "ultrafit-dev-secret-key-change-in-production"
+    expires_in: 24h
+    refresh_expires: 168h  # 7天
+    issuer: "ultrafit"
+
+# HTTP客户端配置
+http_client:
+  timeout: 30
+  retry_count: 3
+  retry_wait_time: 1
+  retry_max_wait_time: 10
+  enable_trace: true
+  enable_log: true
+  max_log_body_size: 10240
+  user_agent: "UltraFit-HTTP-Client/1.0"
+
+# 验证码配置
+captcha:
+  enabled: true
+  type: "digit"
+  width: 160
+  height: 60
+  length: 4
+  noise_count: 5
+  expiration: 5m
+
+# 链路追踪配置 (可选)
+jaeger:
+  enabled: false
+  otlp_url: "http://localhost:4318/v1/traces"
+  sample_rate: 1.0

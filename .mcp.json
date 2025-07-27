@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "dbhub-mysql-npx": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@bytebase/dbhub",
+        "--transport",
+        "stdio",
+        "--dsn",
+        "mysql://root:123456@localhost:3306/ultrafit_dev?sslmode=disable"
+      ]
+    },
+    "context7":{
+      "command":"npx",
+      "args":["-y","@upstash/context7-mcp@latest"]
+    }
+  }
+}
