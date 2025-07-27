@@ -171,8 +171,8 @@ func (db *TenantDB) BeforeUpdate(tx *gorm.DB) error {
 
 ### 1. 子域名识别
 ```
-tenant1.ultrafit.com -> tenant_id: tenant1
-tenant2.ultrafit.com -> tenant_id: tenant2
+tenant1.shield.com -> tenant_id: tenant1
+tenant2.shield.com -> tenant_id: tenant2
 ```
 
 ### 2. JWT令牌识别

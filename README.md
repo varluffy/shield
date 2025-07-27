@@ -1,10 +1,10 @@
-# UltraFit - Go微服务开发框架
+# Shield - Go微服务开发框架
 
 [![Go Version](https://img.shields.io/badge/Go-1.21+-blue.svg)](https://golang.org)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg)](https://github.com/your-org/ultrafit)
+[![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg)](https://github.com/varluffy/shield)
 
-UltraFit 是一个基于 Go 的高性能微服务开发框架，采用清洁架构设计，集成了现代化的技术栈和最佳实践。
+Shield 是一个基于 Go 的高性能微服务开发框架，采用清洁架构设计，集成了现代化的技术栈和最佳实践。
 
 ## 🚀 特性
 
@@ -87,8 +87,8 @@ UltraFit 是一个基于 Go 的高性能微服务开发框架，采用清洁架�
 
 ```bash
 # 克隆项目
-git clone https://github.com/your-org/ultrafit.git
-cd ultrafit
+git clone https://github.com/varluffy/shield.git
+cd shield
 
 # 安装工具
 make tools
@@ -111,7 +111,7 @@ vim configs/config.dev.yaml
 
 ```sql
 -- 创建数据库
-CREATE DATABASE ultrafit_dev CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE shield CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
 ```bash
@@ -135,7 +135,7 @@ make dev     # 启动开发服务器
 ```bash
 # 健康检查
 curl http://localhost:8080/health
-# 返回: {"code":0,"message":"success","data":{"app":"ultrafit","status":"ok","version":"1.0.0"},"timestamp":"2024-01-01T12:00:00Z"}
+# 返回: {"code":0,"message":"success","data":{"app":"shield","status":"ok","version":"1.0.0"},"timestamp":"2024-01-01T12:00:00Z"}
 
 # 测试验证码API
 curl http://localhost:8080/api/v1/captcha/generate
@@ -177,7 +177,7 @@ make migrate        # 数据库迁移
 ```yaml
 # 应用配置
 app:
-  name: "ultrafit"
+  name: "shield"
   version: "1.0.0"
   environment: "development"
   debug: true
@@ -193,8 +193,8 @@ database:
   host: "localhost"
   port: 3306
   user: "root"
-  password: "your_password"
-  name: "ultrafit_dev"
+  password: "123456"
+  name: "shield"
 ```
 
 ### 可选配置
@@ -204,7 +204,7 @@ database:
 redis:
   # 启用Redis时取消注释
   # addrs: ["localhost:6379"]
-  key_prefix: "ultrafit:"
+  key_prefix: "shield:"
 
 # Jaeger配置 (可选)
 jaeger:
@@ -366,8 +366,8 @@ make check
 
 ## 📞 联系我们
 
-- 项目地址: https://github.com/your-org/ultrafit
-- 问题反馈: https://github.com/your-org/ultrafit/issues
+- 项目地址: https://github.com/varluffy/shield
+- 问题反馈: https://github.com/varluffy/shield/issues
 - 技术讨论: [技术群/论坛链接]
 
 ---

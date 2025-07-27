@@ -22,6 +22,9 @@ var ProviderSet = wire.NewSet(
 	NewRoleHandler,
 	NewFieldPermissionHandler,
 
+	// 黑名单相关Handler
+	NewBlacklistHandler,
+
 	// 这里可以添加其他Handler
 	// NewProductHandler,
 	// NewOrderHandler,

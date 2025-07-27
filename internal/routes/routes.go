@@ -22,7 +22,10 @@ func SetupRoutes(
 	permissionHandler *handlers.PermissionHandler,
 	roleHandler *handlers.RoleHandler,
 	fieldPermissionHandler *handlers.FieldPermissionHandler,
+	blacklistHandler *handlers.BlacklistHandler,
 	authMiddleware *middleware.AuthMiddleware,
+	blacklistAuthMiddleware *middleware.BlacklistAuthMiddleware,
+	blacklistLogMiddleware *middleware.BlacklistLogMiddleware,
 ) *gin.Engine {
 	// 设置Gin模式
 	if cfg.App.Environment == "production" {
@@ -140,6 +143,24 @@ func SetupRoutes(
 		{
 			system.GET("/permissions", permissionHandler.ListSystemPermissions) // 获取系统权限列表
 			system.PUT("/permissions/:id", permissionHandler.UpdatePermission)  // 更新权限
+		}
+
+		// 黑名单查询API (HMAC鉴权)
+		blacklist := api.Group("/blacklist")
+		blacklist.Use(blacklistAuthMiddleware.ValidateHMACAuth(), blacklistLogMiddleware.SamplingLogMiddleware())
+		{
+			blacklist.POST("/check", blacklistHandler.CheckBlacklist) // 检查黑名单
+		}
+
+		// 黑名单管理API (JWT鉴权)
+		adminBlacklist := api.Group("/admin/blacklist")
+		adminBlacklist.Use(authMiddleware.RequireAuth()) // 要求认证
+		{
+			adminBlacklist.POST("", authMiddleware.RequirePermission("blacklist_create_api"), blacklistHandler.CreateBlacklist)
+			adminBlacklist.POST("/import", authMiddleware.RequirePermission("blacklist_import_api"), blacklistHandler.BatchImportBlacklist)
+			adminBlacklist.GET("", authMiddleware.RequirePermission("blacklist_list_api"), blacklistHandler.GetBlacklistList)
+			adminBlacklist.DELETE("/:id", authMiddleware.RequirePermission("blacklist_delete_api"), blacklistHandler.DeleteBlacklist)
+			adminBlacklist.GET("/stats", authMiddleware.RequirePermission("blacklist_stats_api"), blacklistHandler.GetQueryStats)
 		}
 	}
 

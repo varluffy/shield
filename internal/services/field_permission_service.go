@@ -25,8 +25,6 @@ type FieldPermissionService interface {
 	InitializeFieldPermissions(ctx context.Context, tableName string, fields []dto.FieldConfig) error
 }
 
-
-
 // fieldPermissionService 字段权限服务实现
 type fieldPermissionService struct {
 	// 这里暂时没有repository依赖，因为还没有创建相应的repository
@@ -225,10 +223,10 @@ func (s *fieldPermissionService) GetUserFieldPermissions(ctx context.Context, us
 
 	// 暂时返回模拟数据
 	permissions := map[string]string{
-		"name":              models.FieldPermissionDefault,
-		"email":             models.FieldPermissionDefault,
-		"phone":             models.FieldPermissionReadonly,
-		"salary":            models.FieldPermissionHidden,
+		"name":               models.FieldPermissionDefault,
+		"email":              models.FieldPermissionDefault,
+		"phone":              models.FieldPermissionReadonly,
+		"salary":             models.FieldPermissionHidden,
 		"salary_expectation": models.FieldPermissionReadonly,
 	}
 
@@ -272,4 +270,4 @@ func isValidPermissionType(permType string) bool {
 	default:
 		return false
 	}
-} 
+}

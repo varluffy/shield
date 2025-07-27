@@ -12,6 +12,10 @@ import (
 var ProviderSet = wire.NewSet(
 	// 认证中间件
 	NewAuthMiddleware,
+	
+	// 黑名单认证中间件
+	NewBlacklistAuthMiddlewareProvider,
+	NewBlacklistLogMiddlewareProvider,
 )
 
 // NewAuthMiddleware 创建JWT认证中间件
@@ -25,5 +29,29 @@ func NewAuthMiddleware(
 		permissionService: permissionService,
 		logger:            logger,
 		responseWriter:    response.NewResponseWriter(logger),
+	}
+}
+
+// NewBlacklistAuthMiddlewareProvider 创建黑名单鉴权中间件
+func NewBlacklistAuthMiddlewareProvider(
+	authService services.BlacklistAuthService,
+	logger *logger.Logger,
+) *BlacklistAuthMiddleware {
+	return &BlacklistAuthMiddleware{
+		authService:    authService,
+		logger:         logger,
+		responseWriter: response.NewResponseWriter(logger),
+	}
+}
+
+// NewBlacklistLogMiddlewareProvider 创建黑名单日志中间件
+func NewBlacklistLogMiddlewareProvider(
+	authService services.BlacklistAuthService,
+	logger *logger.Logger,
+) *BlacklistLogMiddleware {
+	return &BlacklistLogMiddleware{
+		authService: authService,
+		logger:      logger,
+		sampleRate:  0.01, // 1%采样率
 	}
 } 

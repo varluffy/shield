@@ -20,9 +20,17 @@
 
 ## 相关文档
 
-- [业务架构设计](../architecture/business/) - 具体的业务架构文档
-- [API文档](../api/) - 业务API的详细说明
-- [快速开始指南](../guides/getting-started.md) - 项目入门指导
+### 核心设计文档
+- **[系统设计总览](../architecture/system-design.md)** - 完整的系统设计文档
+- **[业务架构设计](../architecture/business/)** - 具体的业务架构文档
+
+### 开发指南
+- **[快速开始指南](../development/getting-started.md)** - 项目入门指导
+- **[架构开发规范](../development/architecture.md)** - 开发约束和规范
+
+### API 和实现
+- **[API 开发指南](../development/api-guide.md)** - API 设计规范
+- **[API 文档](../api/)** - 业务 API 的详细说明
 
 ## 使用建议
 

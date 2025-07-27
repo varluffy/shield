@@ -46,7 +46,7 @@ func NewPermissionCacheService(
 	return &permissionCacheService{
 		redisClient: redisClient,
 		logger:      logger,
-		cachePrefix: "ultrafit:permission:",
+		cachePrefix: "shield:permission:",
 		cacheTTL:    30 * time.Minute, // 30分钟缓存
 	}
 }
@@ -58,7 +58,7 @@ func (s *permissionCacheService) GetUserPermissions(ctx context.Context, userID,
 	}
 
 	key := s.getUserPermissionKey(userID, tenantID)
-	
+
 	data, err := s.redisClient.Get(ctx, key).Result()
 	if err != nil {
 		if err == redis.Nil {
@@ -98,7 +98,7 @@ func (s *permissionCacheService) SetUserPermissions(ctx context.Context, userID,
 	}
 
 	key := s.getUserPermissionKey(userID, tenantID)
-	
+
 	data, err := json.Marshal(permissions)
 	if err != nil {
 		s.logger.ErrorWithTrace(ctx, "Failed to marshal permissions for cache",
@@ -132,7 +132,7 @@ func (s *permissionCacheService) InvalidateUserPermissions(ctx context.Context, 
 	}
 
 	key := s.getUserPermissionKey(userID, tenantID)
-	
+
 	err := s.redisClient.Del(ctx, key).Err()
 	if err != nil {
 		s.logger.ErrorWithTrace(ctx, "Failed to invalidate user permissions cache",
@@ -156,7 +156,7 @@ func (s *permissionCacheService) GetUserRoles(ctx context.Context, userID, tenan
 	}
 
 	key := s.getUserRoleKey(userID, tenantID)
-	
+
 	data, err := s.redisClient.Get(ctx, key).Result()
 	if err != nil {
 		if err == redis.Nil {
@@ -196,7 +196,7 @@ func (s *permissionCacheService) SetUserRoles(ctx context.Context, userID, tenan
 	}
 
 	key := s.getUserRoleKey(userID, tenantID)
-	
+
 	data, err := json.Marshal(roles)
 	if err != nil {
 		s.logger.ErrorWithTrace(ctx, "Failed to marshal roles for cache",
@@ -230,7 +230,7 @@ func (s *permissionCacheService) InvalidateUserRoles(ctx context.Context, userID
 	}
 
 	key := s.getUserRoleKey(userID, tenantID)
-	
+
 	err := s.redisClient.Del(ctx, key).Err()
 	if err != nil {
 		s.logger.ErrorWithTrace(ctx, "Failed to invalidate user roles cache",

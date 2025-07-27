@@ -199,7 +199,7 @@ func (c *ConfigLoader) LoadConfig(configPath string) (*Config, error) {
 		c.viper.AddConfigPath(".")
 		c.viper.AddConfigPath("./configs")
 		c.viper.AddConfigPath("./config")
-		c.viper.AddConfigPath("/etc/ultrafit")
+		c.viper.AddConfigPath("/etc/shield")
 	}
 
 	// 设置环境变量
@@ -264,7 +264,7 @@ func (c *ConfigLoader) setDefaults() {
 	c.viper.SetDefault("database.host", "localhost")
 	c.viper.SetDefault("database.port", 3306)
 	c.viper.SetDefault("database.user", "root")
-	c.viper.SetDefault("database.name", "ultrafit")
+	c.viper.SetDefault("database.name", "shield")
 	c.viper.SetDefault("database.timezone", "Asia/Shanghai")
 	c.viper.SetDefault("database.max_open_conns", 10)
 	c.viper.SetDefault("database.max_idle_conns", 5)

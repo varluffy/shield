@@ -233,8 +233,11 @@ func ErrInvalidCredentials() *BusinessError {
 }
 
 // ErrValidationFailed 验证失败错误
-func ErrValidationFailed(details string) *BusinessError {
-	return NewBusinessError(CodeValidationError, details)
+func ErrValidationFailed(details ...string) *BusinessError {
+	if len(details) > 0 {
+		return NewBusinessError(CodeValidationError, details[0])
+	}
+	return NewBusinessError(CodeValidationError)
 }
 
 // ErrDuplicateEntry 重复记录错误
@@ -260,6 +263,11 @@ func ErrForbidden() *BusinessError {
 // ErrRateLimit 频率限制错误
 func ErrRateLimit() *BusinessError {
 	return NewBusinessError(CodeRateLimitError)
+}
+
+// ErrRateLimitExceeded 请求频率超限错误
+func ErrRateLimitExceeded() *BusinessError {
+	return NewBusinessError(CodeAPIRateLimitExceeded)
 }
 
 // ErrCaptchaGenerate 验证码生成失败错误

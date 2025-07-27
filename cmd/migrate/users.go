@@ -1,99 +1,23 @@
-// Package main provides admin user management utility.
-// It handles admin user creation and management operations.
 package main
 
 import (
-	"flag"
 	"fmt"
-	"log"
-	"os"
 	"strconv"
 	"strings"
 
-	"github.com/varluffy/shield/internal/config"
-	"github.com/varluffy/shield/internal/database"
 	"github.com/varluffy/shield/internal/models"
-	"github.com/varluffy/shield/pkg/logger"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
-func main() {
-	var (
-		configPath = flag.String("config", "", "Path to config file")
-		email      = flag.String("email", "", "Admin email")
-		password   = flag.String("password", "", "Admin password")
-		name       = flag.String("name", "", "Admin name")
-		roleCode   = flag.String("role", "system_admin", "Role code (system_admin, tenant_admin)")
-		tenantID   = flag.String("tenant", "", "Tenant ID (optional, uses default tenant if not specified)")
-		action     = flag.String("action", "create", "Action: create, update, list")
-	)
-	flag.Parse()
-
-	// 加载配置
-	loader := config.NewConfigLoader()
-	cfg, err := loader.LoadConfig(*configPath)
-	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
-	}
-
-	// 创建日志器
-	logConfig := &logger.LogConfig{
-		Level:      cfg.Log.Level,
-		Format:     cfg.Log.Format,
-		Output:     cfg.Log.Output,
-		MaxSize:    cfg.Log.MaxSize,
-		MaxAge:     cfg.Log.MaxAge,
-		MaxBackups: cfg.Log.MaxBackups,
-		Compress:   cfg.Log.Compress,
-	}
-
-	appLogger, err := logger.NewLoggerWithConfig(logConfig)
-	if err != nil {
-		log.Fatalf("Failed to create logger: %v", err)
-	}
-
-	// 连接数据库
-	db, err := database.NewMySQLConnection(cfg.Database, appLogger.Logger)
-	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
-	}
-
-	// 执行操作
-	switch *action {
-	case "create":
-		if *email == "" || *password == "" || *name == "" {
-			fmt.Println("Usage: -action=create -email=admin@example.com -password=admin123 -name=Admin [-role=system_admin] [-tenant=tenant_id]")
-			os.Exit(1)
-		}
-		if err := createAdmin(db, *email, *password, *name, *roleCode, *tenantID); err != nil {
-			log.Fatalf("Failed to create admin: %v", err)
-		}
-	case "update":
-		if *email == "" {
-			fmt.Println("Usage: -action=update -email=admin@example.com [-password=newpass] [-name=NewName] [-role=system_admin] [-tenant=tenant_id]")
-			os.Exit(1)
-		}
-		if err := updateAdmin(db, *email, *password, *name, *roleCode, *tenantID); err != nil {
-			log.Fatalf("Failed to update admin: %v", err)
-		}
-	case "list":
-		if err := listAdmins(db); err != nil {
-			log.Fatalf("Failed to list admins: %v", err)
-		}
-	default:
-		fmt.Println("Available actions: create, update, list")
-		os.Exit(1)
-	}
-}
-
+// createAdmin 创建管理员用户
 func createAdmin(db *gorm.DB, email, password, name, roleCode, tenantID string) error {
 	// 获取默认租户
 	var tenant models.Tenant
 	var tenantIDUint64 uint64
-	
+
 	if tenantID == "" {
-		if err := db.Where("domain = ?", "default.ultrafit.com").First(&tenant).Error; err != nil {
+		if err := db.Where("domain = ?", "default.shield.com").First(&tenant).Error; err != nil {
 			return fmt.Errorf("failed to find default tenant: %w", err)
 		}
 		tenantIDUint64 = tenant.ID
@@ -104,7 +28,7 @@ func createAdmin(db *gorm.DB, email, password, name, roleCode, tenantID string) 
 			return fmt.Errorf("invalid tenant ID format: %w", err)
 		}
 		tenantIDUint64 = parsedID
-		
+
 		if err := db.Where("id = ?", tenantIDUint64).First(&tenant).Error; err != nil {
 			return fmt.Errorf("failed to find tenant: %w", err)
 		}
@@ -166,6 +90,7 @@ func createAdmin(db *gorm.DB, email, password, name, roleCode, tenantID string) 
 	return nil
 }
 
+// updateAdmin 更新管理员信息
 func updateAdmin(db *gorm.DB, email, password, name, roleCode, tenantID string) error {
 	// 查找用户
 	var user models.User
@@ -173,14 +98,14 @@ func updateAdmin(db *gorm.DB, email, password, name, roleCode, tenantID string) 
 	if tenantID != "" {
 		query = query.Where("tenant_id = ?", tenantID)
 	}
-	
+
 	if err := query.First(&user).Error; err != nil {
 		return fmt.Errorf("failed to find user: %w", err)
 	}
 
 	// 更新用户信息
 	updates := make(map[string]interface{})
-	
+
 	if password != "" {
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 		if err != nil {
@@ -188,7 +113,7 @@ func updateAdmin(db *gorm.DB, email, password, name, roleCode, tenantID string) 
 		}
 		updates["password"] = string(hashedPassword)
 	}
-	
+
 	if name != "" {
 		updates["name"] = name
 	}
@@ -231,6 +156,7 @@ func updateAdmin(db *gorm.DB, email, password, name, roleCode, tenantID string) 
 	return nil
 }
 
+// listAdmins 列出所有管理员
 func listAdmins(db *gorm.DB) error {
 	var users []models.User
 	if err := db.Find(&users).Error; err != nil {
@@ -261,15 +187,15 @@ func listAdmins(db *gorm.DB) error {
 			}
 		}
 
-		fmt.Printf("%-8d %-36s %-30s %-20s %-15s %-20s %-10s\n", 
+		fmt.Printf("%-8d %-36s %-30s %-20s %-15s %-20s %-10s\n",
 			user.ID,
-			user.UUID, 
-			user.Email, 
-			user.Name, 
-			user.Status, 
+			user.UUID,
+			user.Email,
+			user.Name,
+			user.Status,
 			tenantName,
 			strings.Join(roleNames, ","))
 	}
 
 	return nil
-} 
+}

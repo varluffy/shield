@@ -126,9 +126,9 @@ package wire
 
 import (
     "github.com/google/wire"
-    "gitlab.creditease.corp/aigc/ultrafit/internal/handlers"
-    "gitlab.creditease.corp/aigc/ultrafit/internal/services"
-    "gitlab.creditease.corp/aigc/ultrafit/internal/repositories"
+    "github.com/varluffy/shield/internal/handlers"
+    "github.com/varluffy/shield/internal/services"
+    "github.com/varluffy/shield/internal/repositories"
 )
 
 // 定义Provider集合

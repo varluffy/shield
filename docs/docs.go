@@ -80,6 +80,472 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/admin/blacklist": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "分页获取黑名单列表",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "黑名单管理"
+                ],
+                "summary": "获取黑名单列表",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "每页数量",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.GetBlacklistResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "创建新的黑名单记录",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "黑名单管理"
+                ],
+                "summary": "创建黑名单",
+                "parameters": [
+                    {
+                        "description": "创建请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.CreateBlacklistRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.BlacklistInfo"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/admin/blacklist/import": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "批量导入黑名单记录",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "黑名单管理"
+                ],
+                "summary": "批量导入黑名单",
+                "parameters": [
+                    {
+                        "description": "批量导入请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.BatchImportBlacklistRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.BatchImportResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/admin/blacklist/stats": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "获取黑名单查询统计信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "黑名单管理"
+                ],
+                "summary": "获取查询统计",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 24,
+                        "description": "统计小时数",
+                        "name": "hours",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.QueryStatsResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/admin/blacklist/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "删除指定的黑名单记录",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "黑名单管理"
+                ],
+                "summary": "删除黑名单",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "黑名单ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/blacklist/check": {
+            "post": {
+                "description": "检查手机号MD5是否在黑名单中",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "黑名单查询"
+                ],
+                "summary": "检查黑名单",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "API密钥",
+                        "name": "X-API-Key",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "时间戳",
+                        "name": "X-Timestamp",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "随机数",
+                        "name": "X-Nonce",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "HMAC签名",
+                        "name": "X-Signature",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "查询请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.CheckBlacklistRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.CheckBlacklistResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/login": {
             "post": {
                 "consumes": [
@@ -1671,6 +2137,94 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_varluffy_shield_internal_dto.BatchImportBlacklistRequest": {
+            "type": "object",
+            "required": [
+                "phone_md5_list",
+                "source"
+            ],
+            "properties": {
+                "phone_md5_list": {
+                    "type": "array",
+                    "maxItems": 10000,
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "reason": {
+                    "type": "string",
+                    "example": "批量导入"
+                },
+                "source": {
+                    "type": "string",
+                    "example": "import"
+                }
+            }
+        },
+        "github_com_varluffy_shield_internal_dto.BatchImportResponse": {
+            "type": "object",
+            "properties": {
+                "failed_count": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "failed_items": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "[]"
+                    ]
+                },
+                "success_count": {
+                    "type": "integer",
+                    "example": 100
+                }
+            }
+        },
+        "github_com_varluffy_shield_internal_dto.BlacklistInfo": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string",
+                    "example": "2024-01-01T10:00:00Z"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "is_active": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "operator_id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "phone_md5": {
+                    "type": "string",
+                    "example": "5d41402abc4b2a76b9719d911017c592"
+                },
+                "reason": {
+                    "type": "string",
+                    "example": "用户投诉"
+                },
+                "source": {
+                    "type": "string",
+                    "example": "manual"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2024-01-01T10:00:00Z"
+                },
+                "uuid": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                }
+            }
+        },
         "github_com_varluffy_shield_internal_dto.CaptchaGenerateResponse": {
             "type": "object",
             "properties": {
@@ -1698,6 +2252,52 @@ const docTemplate = `{
                 "captcha_id": {
                     "type": "string",
                     "example": "abc123"
+                }
+            }
+        },
+        "github_com_varluffy_shield_internal_dto.CheckBlacklistRequest": {
+            "type": "object",
+            "required": [
+                "phone_md5"
+            ],
+            "properties": {
+                "phone_md5": {
+                    "type": "string",
+                    "example": "5d41402abc4b2a76b9719d911017c592"
+                }
+            }
+        },
+        "github_com_varluffy_shield_internal_dto.CheckBlacklistResponse": {
+            "type": "object",
+            "properties": {
+                "is_blacklist": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "phone_md5": {
+                    "type": "string",
+                    "example": "5d41402abc4b2a76b9719d911017c592"
+                }
+            }
+        },
+        "github_com_varluffy_shield_internal_dto.CreateBlacklistRequest": {
+            "type": "object",
+            "required": [
+                "phone_md5",
+                "source"
+            ],
+            "properties": {
+                "phone_md5": {
+                    "type": "string",
+                    "example": "5d41402abc4b2a76b9719d911017c592"
+                },
+                "reason": {
+                    "type": "string",
+                    "example": "用户投诉"
+                },
+                "source": {
+                    "type": "string",
+                    "example": "manual"
                 }
             }
         },
@@ -1790,6 +2390,20 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_varluffy_shield_internal_dto.GetBlacklistResponse": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.BlacklistInfo"
+                    }
+                },
+                "pagination": {
+                    "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.PaginationInfo"
+                }
+            }
+        },
         "github_com_varluffy_shield_internal_dto.InitializeFieldsRequest": {
             "type": "object",
             "required": [
@@ -1828,6 +2442,52 @@ const docTemplate = `{
                 "password": {
                     "type": "string",
                     "example": "password123"
+                }
+            }
+        },
+        "github_com_varluffy_shield_internal_dto.PaginationInfo": {
+            "type": "object",
+            "properties": {
+                "page": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "page_size": {
+                    "type": "integer",
+                    "example": 20
+                },
+                "total": {
+                    "type": "integer",
+                    "example": 100
+                },
+                "total_pages": {
+                    "type": "integer",
+                    "example": 5
+                }
+            }
+        },
+        "github_com_varluffy_shield_internal_dto.QueryStatsResponse": {
+            "type": "object",
+            "properties": {
+                "avg_latency_ms": {
+                    "type": "number",
+                    "example": 5.2
+                },
+                "hit_count": {
+                    "type": "integer",
+                    "example": 150
+                },
+                "hit_rate": {
+                    "type": "number",
+                    "example": 15
+                },
+                "miss_count": {
+                    "type": "integer",
+                    "example": 850
+                },
+                "total_queries": {
+                    "type": "integer",
+                    "example": 1000
                 }
             }
         },

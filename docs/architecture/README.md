@@ -28,6 +28,15 @@
 
 ## 相关文档
 
-- [技术框架文档](../frameworks/)
-- [业务需求文档](../business/)
-- [开发指南](../guides/) 
+### 核心文档
+- **[系统设计总览](./system-design.md)** - 完整的系统设计文档
+- **[开发指南](../development/)** - 开发规范和最佳实践
+
+### 详细文档
+- [技术框架文档](../frameworks/) - 框架使用指南
+- [业务需求文档](../business/) - 业务需求规格
+- [API 文档](../api/) - 接口规范和使用说明
+
+### 入门指南
+- **[快速开始](../development/getting-started.md)** - 新手必读
+- **[架构规范](../development/architecture.md)** - 架构开发约束 

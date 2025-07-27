@@ -22,6 +22,10 @@ var ProviderSet = wire.NewSet(
 	// Permission Audit相关Repository
 	NewPermissionAuditRepository,
 
+	// Blacklist相关Repository
+	NewBlacklistRepository,
+	NewApiCredentialRepository,
+
 	// 这里可以添加其他Repository
 	// NewProductRepository,
 	// NewOrderRepository,

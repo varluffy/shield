@@ -71,7 +71,10 @@ type App struct {
 	PermissionHandler       *handlers.PermissionHandler
 	RoleHandler             *handlers.RoleHandler
 	FieldPermissionHandler  *handlers.FieldPermissionHandler
+	BlacklistHandler        *handlers.BlacklistHandler
 	AuthMiddleware          *middleware.AuthMiddleware
+	BlacklistAuthMiddleware *middleware.BlacklistAuthMiddleware
+	BlacklistLogMiddleware  *middleware.BlacklistLogMiddleware
 }
 
 // NewApp 创建应用实例
@@ -84,17 +87,23 @@ func NewApp(
 	permissionHandler *handlers.PermissionHandler,
 	roleHandler *handlers.RoleHandler,
 	fieldPermissionHandler *handlers.FieldPermissionHandler,
+	blacklistHandler *handlers.BlacklistHandler,
 	authMiddleware *middleware.AuthMiddleware,
+	blacklistAuthMiddleware *middleware.BlacklistAuthMiddleware,
+	blacklistLogMiddleware *middleware.BlacklistLogMiddleware,
 ) *App {
 	return &App{
-		Config:                 cfg,
-		Logger:                 logger,
-		DB:                     db,
-		UserHandler:            userHandler,
-		CaptchaHandler:         captchaHandler,
-		PermissionHandler:      permissionHandler,
-		RoleHandler:            roleHandler,
-		FieldPermissionHandler: fieldPermissionHandler,
-		AuthMiddleware:         authMiddleware,
+		Config:                  cfg,
+		Logger:                  logger,
+		DB:                      db,
+		UserHandler:             userHandler,
+		CaptchaHandler:          captchaHandler,
+		PermissionHandler:       permissionHandler,
+		RoleHandler:             roleHandler,
+		FieldPermissionHandler:  fieldPermissionHandler,
+		BlacklistHandler:        blacklistHandler,
+		AuthMiddleware:          authMiddleware,
+		BlacklistAuthMiddleware: blacklistAuthMiddleware,
+		BlacklistLogMiddleware:  blacklistLogMiddleware,
 	}
 }

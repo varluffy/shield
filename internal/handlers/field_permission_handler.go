@@ -272,17 +272,7 @@ func (h *FieldPermissionHandler) UpdateRoleFieldPermissions(c *gin.Context) {
 }
 
 // GetUserFieldPermissions 获取用户的字段权限
-// @Summary 获取用户字段权限
-// @Description 获取当前用户在指定表的字段权限（聚合角色权限后的结果）
-// @Tags user
-// @Accept json
-// @Produce json
-// @Param tableName path string true "表名"
-// @Success 200 {object} response.Response
-// @Failure 400 {object} response.Response
-// @Failure 401 {object} response.Response "未授权"
-// @Security BearerAuth
-// @Router /user/field-permissions/{tableName} [get]
+// 注意：此方法未在路由中使用，实际API由UserHandler.GetUserFieldPermissions处理
 func (h *FieldPermissionHandler) GetUserFieldPermissions(c *gin.Context) {
 	ctx := c.Request.Context()
 

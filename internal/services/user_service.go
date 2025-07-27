@@ -30,12 +30,12 @@ type UserService interface {
 	UpdateUserByUUID(ctx context.Context, uuid string, req dto.UpdateUserRequest) (*dto.UserResponse, error)
 	DeleteUserByUUID(ctx context.Context, uuid string) error
 	ListUsers(ctx context.Context, filter dto.UserFilter) (*dto.UserListResponse, error)
-	
+
 	// 内部接口 - 使用ID（为了兼容和内部调用）
 	GetUserByID(ctx context.Context, id uint64) (*dto.UserResponse, error)
 	UpdateUser(ctx context.Context, id uint64, req dto.UpdateUserRequest) (*dto.UserResponse, error)
 	DeleteUser(ctx context.Context, id uint64) error
-	
+
 	// 认证相关
 	Login(ctx context.Context, req dto.LoginRequest) (*dto.LoginResponse, error)
 	TestLogin(ctx context.Context, req dto.TestLoginRequest) (*dto.LoginResponse, error)
@@ -600,7 +600,6 @@ func (s *UserServiceImpl) CreateUsersBatch(ctx context.Context, users []dto.Crea
 		}
 		return nil
 	})
-
 	if err != nil {
 		s.logger.ErrorWithTrace(ctx, "Failed to create users batch",
 			zap.Error(err),
@@ -764,14 +763,14 @@ func (s *UserServiceImpl) RefreshToken(ctx context.Context, req dto.RefreshToken
 func (s *UserServiceImpl) modelToResponse(user *models.User) *dto.UserResponse {
 	// TODO: 获取租户UUID，暂时使用TenantID转换
 	tenantUUID := fmt.Sprintf("%d", user.TenantID)
-	
+
 	return &dto.UserResponse{
-		ID:        user.UUID,    // 使用UUID作为对外ID
+		ID:        user.UUID, // 使用UUID作为对外ID
 		Name:      user.Name,
 		Email:     user.Email,
 		Status:    user.Status,
 		Active:    user.Status == "active",
-		TenantID:  tenantUUID,   // 使用租户UUID作为对外Tenant ID
+		TenantID:  tenantUUID, // 使用租户UUID作为对外Tenant ID
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
 	}

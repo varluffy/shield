@@ -60,7 +60,7 @@ type TestComponents struct {
 func NewTestConfig() *config.Config {
 	return &config.Config{
 		App: config.AppConfig{
-			Name:        "ultrafit-test",
+			Name:        "shield-test",
 			Version:     "1.0.0",
 			Environment: "test",
 		},
@@ -69,7 +69,7 @@ func NewTestConfig() *config.Config {
 			Port:     3306,
 			User:     "root",
 			Password: "123456",
-			Name:     "ultrafit_test",
+			Name:     "shield_test",
 		},
 		Server: config.ServerConfig{
 			Host: "localhost",
@@ -83,7 +83,7 @@ func NewTestConfig() *config.Config {
 		Auth: &config.AuthConfig{
 			JWT: config.JWTConfig{
 				Secret:         "test-secret-key",
-				Issuer:         "ultrafit-test",
+				Issuer:         "shield-test",
 				ExpiresIn:      time.Hour,
 				RefreshExpires: time.Hour * 24,
 			},
@@ -114,7 +114,7 @@ func NewTestComponents(db *gorm.DB, testLogger *logger.Logger) *TestComponents {
 	// 创建JWT服务
 	jwtService := auth.NewJWTService(
 		"test-secret-key",
-		"ultrafit-test",
+		"shield-test",
 		time.Hour,
 		time.Hour*24,
 	)
@@ -131,7 +131,7 @@ func NewTestComponents(db *gorm.DB, testLogger *logger.Logger) *TestComponents {
 	captchaService := captcha.NewCaptchaService(captchaStore, captchaConfig, testLogger.Logger)
 
 	// 创建Redis客户端（可选，如果Redis不可用则跳过缓存）
-	var redisCache *redis.Client = redis.NewClient(&redis.Config{
+	redisCache := redis.NewClient(&redis.Config{
 		Addrs:    []string{"localhost:6379"},
 		Password: "",
 		DB:       1,

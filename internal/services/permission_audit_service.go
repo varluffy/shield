@@ -119,15 +119,15 @@ func (s *permissionAuditService) LogPermissionRevoke(ctx context.Context, req Lo
 // LogRoleCreate 记录角色创建操作
 func (s *permissionAuditService) LogRoleCreate(ctx context.Context, req LogRoleRequest) error {
 	auditLog := &models.PermissionAuditLog{
-		TenantID:    req.TenantID,
-		OperatorID:  req.OperatorID,
-		TargetType:  models.AuditTargetRole,
-		TargetID:    req.RoleID,
-		Action:      models.AuditActionCreate,
-		NewValue:    req.RoleData,
-		Reason:      req.Reason,
-		IPAddress:   req.IPAddress,
-		UserAgent:   req.UserAgent,
+		TenantID:   req.TenantID,
+		OperatorID: req.OperatorID,
+		TargetType: models.AuditTargetRole,
+		TargetID:   req.RoleID,
+		Action:     models.AuditActionCreate,
+		NewValue:   req.RoleData,
+		Reason:     req.Reason,
+		IPAddress:  req.IPAddress,
+		UserAgent:  req.UserAgent,
 	}
 
 	return s.createAuditLog(ctx, auditLog)
@@ -136,16 +136,16 @@ func (s *permissionAuditService) LogRoleCreate(ctx context.Context, req LogRoleR
 // LogRoleUpdate 记录角色更新操作
 func (s *permissionAuditService) LogRoleUpdate(ctx context.Context, req LogRoleUpdateRequest) error {
 	auditLog := &models.PermissionAuditLog{
-		TenantID:    req.TenantID,
-		OperatorID:  req.OperatorID,
-		TargetType:  models.AuditTargetRole,
-		TargetID:    req.RoleID,
-		Action:      models.AuditActionUpdate,
-		OldValue:    req.OldValue,
-		NewValue:    req.NewValue,
-		Reason:      req.Reason,
-		IPAddress:   req.IPAddress,
-		UserAgent:   req.UserAgent,
+		TenantID:   req.TenantID,
+		OperatorID: req.OperatorID,
+		TargetType: models.AuditTargetRole,
+		TargetID:   req.RoleID,
+		Action:     models.AuditActionUpdate,
+		OldValue:   req.OldValue,
+		NewValue:   req.NewValue,
+		Reason:     req.Reason,
+		IPAddress:  req.IPAddress,
+		UserAgent:  req.UserAgent,
 	}
 
 	return s.createAuditLog(ctx, auditLog)
@@ -154,15 +154,15 @@ func (s *permissionAuditService) LogRoleUpdate(ctx context.Context, req LogRoleU
 // LogRoleDelete 记录角色删除操作
 func (s *permissionAuditService) LogRoleDelete(ctx context.Context, req LogRoleRequest) error {
 	auditLog := &models.PermissionAuditLog{
-		TenantID:    req.TenantID,
-		OperatorID:  req.OperatorID,
-		TargetType:  models.AuditTargetRole,
-		TargetID:    req.RoleID,
-		Action:      models.AuditActionDelete,
-		OldValue:    req.RoleData,
-		Reason:      req.Reason,
-		IPAddress:   req.IPAddress,
-		UserAgent:   req.UserAgent,
+		TenantID:   req.TenantID,
+		OperatorID: req.OperatorID,
+		TargetType: models.AuditTargetRole,
+		TargetID:   req.RoleID,
+		Action:     models.AuditActionDelete,
+		OldValue:   req.RoleData,
+		Reason:     req.Reason,
+		IPAddress:  req.IPAddress,
+		UserAgent:  req.UserAgent,
 	}
 
 	return s.createAuditLog(ctx, auditLog)
@@ -228,7 +228,7 @@ func (s *permissionAuditService) logUserRoleOperation(ctx context.Context, req L
 		"role_id":   req.RoleID,
 		"role_name": req.RoleName,
 	}
-	
+
 	roleDataJSON, _ := json.Marshal(roleData)
 
 	auditLog := &models.PermissionAuditLog{

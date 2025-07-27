@@ -83,7 +83,7 @@ func NewHTTPClient(cfg *config.HTTPClientConfig, logger *logger.Logger) HTTPClie
 		client: client,
 		config: cfg,
 		logger: logger,
-		tracer: otel.Tracer("ultrafit-http-client"),
+		tracer: otel.Tracer("shield-http-client"),
 	}
 
 	// 设置中间件

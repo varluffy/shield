@@ -27,7 +27,7 @@ linters-settings:
 
   # 检测导入包的问题
   goimports:
-    local-prefixes: github.com/yourusername/ultrafit
+    local-prefixes: github.com/varluffy/shield
 
   # 检测错误处理
   errcheck:

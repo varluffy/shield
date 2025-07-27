@@ -349,4 +349,4 @@ func (s *roleService) convertTenantID(tenantID string) (uint64, error) {
 	}
 
 	return 0, fmt.Errorf("invalid tenant ID format: %s", tenantID)
-} 
+}

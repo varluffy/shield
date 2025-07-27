@@ -519,7 +519,7 @@ INSERT INTO permissions (id, code, name, resource, action, type, category, is_sy
 
 -- 创建默认租户
 INSERT INTO tenants (id, name, domain, status) VALUES
-('default-tenant', '默认租户', 'default.ultrafit.com', 'active');
+('default-tenant', '默认租户', 'default.shield.com', 'active');
 
 -- 创建系统角色
 INSERT INTO roles (id, tenant_id, code, name, type, level) VALUES

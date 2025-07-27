@@ -9,6 +9,69 @@ definitions:
     required:
     - permission_ids
     type: object
+  github_com_varluffy_shield_internal_dto.BatchImportBlacklistRequest:
+    properties:
+      phone_md5_list:
+        items:
+          type: string
+        maxItems: 10000
+        minItems: 1
+        type: array
+      reason:
+        example: 批量导入
+        type: string
+      source:
+        example: import
+        type: string
+    required:
+    - phone_md5_list
+    - source
+    type: object
+  github_com_varluffy_shield_internal_dto.BatchImportResponse:
+    properties:
+      failed_count:
+        example: 0
+        type: integer
+      failed_items:
+        example:
+        - '[]'
+        items:
+          type: string
+        type: array
+      success_count:
+        example: 100
+        type: integer
+    type: object
+  github_com_varluffy_shield_internal_dto.BlacklistInfo:
+    properties:
+      created_at:
+        example: "2024-01-01T10:00:00Z"
+        type: string
+      id:
+        example: 1
+        type: integer
+      is_active:
+        example: true
+        type: boolean
+      operator_id:
+        example: 1
+        type: integer
+      phone_md5:
+        example: 5d41402abc4b2a76b9719d911017c592
+        type: string
+      reason:
+        example: 用户投诉
+        type: string
+      source:
+        example: manual
+        type: string
+      updated_at:
+        example: "2024-01-01T10:00:00Z"
+        type: string
+      uuid:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+    type: object
   github_com_varluffy_shield_internal_dto.CaptchaGenerateResponse:
     properties:
       captcha_id:
@@ -29,6 +92,38 @@ definitions:
     required:
     - answer
     - captcha_id
+    type: object
+  github_com_varluffy_shield_internal_dto.CheckBlacklistRequest:
+    properties:
+      phone_md5:
+        example: 5d41402abc4b2a76b9719d911017c592
+        type: string
+    required:
+    - phone_md5
+    type: object
+  github_com_varluffy_shield_internal_dto.CheckBlacklistResponse:
+    properties:
+      is_blacklist:
+        example: true
+        type: boolean
+      phone_md5:
+        example: 5d41402abc4b2a76b9719d911017c592
+        type: string
+    type: object
+  github_com_varluffy_shield_internal_dto.CreateBlacklistRequest:
+    properties:
+      phone_md5:
+        example: 5d41402abc4b2a76b9719d911017c592
+        type: string
+      reason:
+        example: 用户投诉
+        type: string
+      source:
+        example: manual
+        type: string
+    required:
+    - phone_md5
+    - source
     type: object
   github_com_varluffy_shield_internal_dto.CreateRoleRequest:
     properties:
@@ -92,6 +187,15 @@ definitions:
     - field_name
     - permission_type
     type: object
+  github_com_varluffy_shield_internal_dto.GetBlacklistResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/github_com_varluffy_shield_internal_dto.BlacklistInfo'
+        type: array
+      pagination:
+        $ref: '#/definitions/github_com_varluffy_shield_internal_dto.PaginationInfo'
+    type: object
   github_com_varluffy_shield_internal_dto.InitializeFieldsRequest:
     properties:
       fields:
@@ -120,6 +224,39 @@ definitions:
     - captcha_id
     - email
     - password
+    type: object
+  github_com_varluffy_shield_internal_dto.PaginationInfo:
+    properties:
+      page:
+        example: 1
+        type: integer
+      page_size:
+        example: 20
+        type: integer
+      total:
+        example: 100
+        type: integer
+      total_pages:
+        example: 5
+        type: integer
+    type: object
+  github_com_varluffy_shield_internal_dto.QueryStatsResponse:
+    properties:
+      avg_latency_ms:
+        example: 5.2
+        type: number
+      hit_count:
+        example: 150
+        type: integer
+      hit_rate:
+        example: 15
+        type: number
+      miss_count:
+        example: 850
+        type: integer
+      total_queries:
+        example: 1000
+        type: integer
     type: object
   github_com_varluffy_shield_internal_dto.RefreshTokenRequest:
     properties:
@@ -308,6 +445,294 @@ paths:
       summary: 创建用户账号（管理员权限）
       tags:
       - admin
+  /api/v1/admin/blacklist:
+    get:
+      consumes:
+      - application/json
+      description: 分页获取黑名单列表
+      parameters:
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_varluffy_shield_internal_dto.GetBlacklistResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+      security:
+      - BearerAuth: []
+      summary: 获取黑名单列表
+      tags:
+      - 黑名单管理
+    post:
+      consumes:
+      - application/json
+      description: 创建新的黑名单记录
+      parameters:
+      - description: 创建请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_varluffy_shield_internal_dto.CreateBlacklistRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_varluffy_shield_internal_dto.BlacklistInfo'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+      security:
+      - BearerAuth: []
+      summary: 创建黑名单
+      tags:
+      - 黑名单管理
+  /api/v1/admin/blacklist/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 删除指定的黑名单记录
+      parameters:
+      - description: 黑名单ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+      security:
+      - BearerAuth: []
+      summary: 删除黑名单
+      tags:
+      - 黑名单管理
+  /api/v1/admin/blacklist/import:
+    post:
+      consumes:
+      - application/json
+      description: 批量导入黑名单记录
+      parameters:
+      - description: 批量导入请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_varluffy_shield_internal_dto.BatchImportBlacklistRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_varluffy_shield_internal_dto.BatchImportResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+      security:
+      - BearerAuth: []
+      summary: 批量导入黑名单
+      tags:
+      - 黑名单管理
+  /api/v1/admin/blacklist/stats:
+    get:
+      consumes:
+      - application/json
+      description: 获取黑名单查询统计信息
+      parameters:
+      - default: 24
+        description: 统计小时数
+        in: query
+        name: hours
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_varluffy_shield_internal_dto.QueryStatsResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+      security:
+      - BearerAuth: []
+      summary: 获取查询统计
+      tags:
+      - 黑名单管理
+  /api/v1/blacklist/check:
+    post:
+      consumes:
+      - application/json
+      description: 检查手机号MD5是否在黑名单中
+      parameters:
+      - description: API密钥
+        in: header
+        name: X-API-Key
+        required: true
+        type: string
+      - description: 时间戳
+        in: header
+        name: X-Timestamp
+        required: true
+        type: string
+      - description: 随机数
+        in: header
+        name: X-Nonce
+        required: true
+        type: string
+      - description: HMAC签名
+        in: header
+        name: X-Signature
+        required: true
+        type: string
+      - description: 查询请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_varluffy_shield_internal_dto.CheckBlacklistRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_varluffy_shield_internal_dto.CheckBlacklistResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
+      summary: 检查黑名单
+      tags:
+      - 黑名单查询
   /auth/login:
     post:
       consumes:

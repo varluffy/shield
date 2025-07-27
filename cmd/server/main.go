@@ -28,7 +28,7 @@ import (
 	"syscall"
 	"time"
 
-	_ "github.com/varluffy/shield/docs/api" // swagger docs
+	_ "github.com/varluffy/shield/docs" // swagger docs
 	"github.com/varluffy/shield/internal/routes"
 	"github.com/varluffy/shield/internal/wire"
 	"github.com/varluffy/shield/pkg/response"
@@ -72,7 +72,10 @@ func main() {
 		app.PermissionHandler,
 		app.RoleHandler,
 		app.FieldPermissionHandler,
+		app.BlacklistHandler,
 		app.AuthMiddleware,
+		app.BlacklistAuthMiddleware,
+		app.BlacklistLogMiddleware,
 	)
 
 	// 记录启动信息

@@ -1,6 +1,6 @@
-# UltraFit 开发环境配置
+# Shield 开发环境配置
 app:
-  name: "ultrafit"
+  name: "shield"
   version: "1.0.0"
   environment: "development"
   debug: true
@@ -46,16 +46,23 @@ redis:
   password: "123456"
   db: 0
   max_retries: 3
-  pool_size: 10
-  key_prefix: "ultrafit:"
+  pool_size: 100  # 优化连接池大小以支持高并发
+  min_idle_conns: 10
+  max_idle_conns: 50
+  dial_timeout: 5s
+  read_timeout: 3s
+  write_timeout: 3s
+  idle_timeout: 300s
+  key_prefix: "shield:"
+  enable_tracing: true
 
 # JWT认证配置
 auth:
   jwt:
-    secret: "ultrafit-dev-secret-key-change-in-production"
+    secret: "shield-dev-secret-key-change-in-production"
     expires_in: 24h
     refresh_expires: 168h  # 7天
-    issuer: "ultrafit"
+    issuer: "shield"
 
 # HTTP客户端配置
 http_client:
@@ -66,7 +73,7 @@ http_client:
   enable_trace: true
   enable_log: true
   max_log_body_size: 10240
-  user_agent: "UltraFit-HTTP-Client/1.0"
+  user_agent: "Shield-HTTP-Client/1.0"
 
 # 验证码配置
 captcha:

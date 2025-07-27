@@ -29,7 +29,7 @@ func TestRedisWithPrefix(t *testing.T) {
 		ReadTimeout:   3 * time.Second,
 		WriteTimeout:  3 * time.Second,
 		IdleTimeout:   300 * time.Second,
-		KeyPrefix:     "test:ultrafit:",
+		KeyPrefix:     "test:shield:",
 		EnableTracing: false, // 测试时关闭追踪
 		TracingName:   "redis-test",
 	}
@@ -169,7 +169,7 @@ func TestRedisWithPrefix(t *testing.T) {
 		require.NoError(t, err)
 		assert.Len(t, keys, 2)
 		// 验证返回的键包含前缀
-		expectedPrefix := "test:ultrafit:"
+		expectedPrefix := "test:shield:"
 		for _, key := range keys {
 			assert.True(t, strings.HasPrefix(key, expectedPrefix))
 		}

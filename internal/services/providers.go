@@ -25,6 +25,10 @@ var ProviderSet = wire.NewSet(
 	// Audit相关Service
 	NewPermissionAuditService,
 
+	// Blacklist相关Service
+	NewBlacklistService,
+	NewBlacklistAuthService,
+
 	// 这里可以添加其他Service
 	// NewProductService,
 	// NewOrderService,

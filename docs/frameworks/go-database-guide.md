@@ -196,7 +196,7 @@ redis:
   dial_timeout: "5s"
   read_timeout: "3s"
   write_timeout: "3s"
-  key_prefix: "ultrafit:dev:"  # 环境前缀
+  key_prefix: "shield:dev:"  # 环境前缀
 ```
 
 ### Redis客户端封装

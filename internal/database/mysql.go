@@ -130,7 +130,7 @@ func SeedInitialData(db *gorm.DB) error {
 	// 创建默认租户
 	defaultTenant := &models.Tenant{
 		Name:     "默认租户",
-		Domain:   "default.ultrafit.com",
+		Domain:   "default.shield.com",
 		Status:   "active",
 		Plan:     "basic",
 		Settings: "{}",
@@ -200,7 +200,7 @@ func CleanDatabase(db *gorm.DB) error {
 	// 删除表的顺序很重要，先删除有外键约束的表
 	tables := []string{
 		"user_roles",
-		"role_permissions", 
+		"role_permissions",
 		"refresh_tokens",
 		"login_attempts",
 		"user_profiles",

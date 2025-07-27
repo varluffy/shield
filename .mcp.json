@@ -8,7 +8,7 @@
         "--transport",
         "stdio",
         "--dsn",
-        "mysql://root:123456@localhost:3306/ultrafit_dev?sslmode=disable"
+        "mysql://root:123456@localhost:3306/shield?sslmode=disable"
       ]
     },
     "context7":{

@@ -27,7 +27,7 @@ type PermissionService interface {
 	IsSystemAdmin(ctx context.Context, userID string) (bool, error)
 	// IsTenantAdmin 检查用户是否为租户管理员
 	IsTenantAdmin(ctx context.Context, userID, tenantID string) (bool, error)
-	
+
 	// 权限管理方法
 	// ListPermissions 获取权限列表
 	ListPermissions(ctx context.Context, filter map[string]interface{}, page, limit int) ([]models.Permission, int64, error)
@@ -309,13 +309,13 @@ func (s *permissionService) convertTenantIDToUUID(ctx context.Context, tenantID 
 	if err != nil {
 		return "", fmt.Errorf("invalid tenant ID format: %s", tenantID)
 	}
-	
+
 	// 特殊处理系统级别（ID为0）
 	if numericID == 0 {
 		// 系统级别，返回系统标识符
 		return "00000000-0000-0000-0000-000000000000", nil
 	}
-	
+
 	// 通过TenantRepository查询租户UUID
 	tenantUUID, err := s.tenantRepo.GetUUIDByID(ctx, numericID)
 	if err != nil {
@@ -324,11 +324,11 @@ func (s *permissionService) convertTenantIDToUUID(ctx context.Context, tenantID 
 			zap.Error(err))
 		return "", fmt.Errorf("failed to get tenant UUID for ID %d: %w", numericID, err)
 	}
-	
+
 	s.logger.DebugWithTrace(ctx, "Converted tenant ID to UUID",
 		zap.Uint64("tenant_id", numericID),
 		zap.String("tenant_uuid", tenantUUID))
-	
+
 	return tenantUUID, nil
 }
 
@@ -653,4 +653,4 @@ func (s *permissionService) GetPermissionByID(ctx context.Context, id uint64) (*
 		zap.String("code", permission.Code))
 
 	return permission, nil
-} 
+}
