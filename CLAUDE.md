@@ -391,6 +391,7 @@ For comprehensive guidance, see the structured documentation:
 - **[Getting Started](docs/development/getting-started.md)** - Project setup and quick start
 - **[Architecture Guide](docs/development/architecture.md)** - Detailed architecture rules and patterns  
 - **[API Development](docs/development/api-guide.md)** - API design and implementation standards
+- **[Testing Cheatsheet](docs/development/testing-cheatsheet.md)** - Quick reference for testing commands ⚡
 - **[Testing Guide](docs/development/testing-guide.md)** - Testing strategies and best practices
 - **[Service Testing Guide](docs/development/service-testing-guide.md)** - Service layer unit testing patterns ✨
 - **[Test Users Guide](docs/development/test-users.md)** - Standard test users and authentication
