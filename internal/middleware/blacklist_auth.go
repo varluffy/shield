@@ -5,6 +5,8 @@ package middleware
 import (
 	"bytes"
 	"io"
+	"net"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -96,6 +98,18 @@ func (m *BlacklistAuthMiddleware) ValidateHMACAuth() gin.HandlerFunc {
 			return
 		}
 
+		// IP白名单检查
+		clientIP := m.getClientIP(c)
+		if !m.isIPAllowed(clientIP, credential.IPWhitelist) {
+			m.logger.WarnWithTrace(ctx, "IP地址不在白名单中",
+				zap.String("api_key", apiKey),
+				zap.String("client_ip", clientIP),
+				zap.String("ip_whitelist", credential.IPWhitelist))
+			m.responseWriter.Error(c, errors.ErrForbidden())
+			c.Abort()
+			return
+		}
+
 		// 检查速率限制
 		err = m.authService.CheckRateLimit(ctx, apiKey)
 		if err != nil {
@@ -141,4 +155,70 @@ func (m *BlacklistAuthMiddleware) readRequestBody(c *gin.Context) (string, error
 	c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
 	return string(bodyBytes), nil
+}
+
+// getClientIP 获取客户端真实IP地址
+func (m *BlacklistAuthMiddleware) getClientIP(c *gin.Context) string {
+	// 优先从 X-Real-IP 获取
+	if ip := c.GetHeader("X-Real-IP"); ip != "" {
+		return ip
+	}
+
+	// 从 X-Forwarded-For 获取（取第一个IP）
+	if ips := c.GetHeader("X-Forwarded-For"); ips != "" {
+		parts := strings.Split(ips, ",")
+		if len(parts) > 0 {
+			return strings.TrimSpace(parts[0])
+		}
+	}
+
+	// 从 RemoteAddr 获取
+	ip, _, err := net.SplitHostPort(c.Request.RemoteAddr)
+	if err != nil {
+		return c.Request.RemoteAddr
+	}
+	return ip
+}
+
+// isIPAllowed 检查IP是否在白名单中
+func (m *BlacklistAuthMiddleware) isIPAllowed(clientIP, whitelist string) bool {
+	// 如果白名单为空，表示不限制IP
+	if whitelist == "" {
+		return true
+	}
+
+	// 解析客户端IP
+	clientIPAddr := net.ParseIP(clientIP)
+	if clientIPAddr == nil {
+		return false
+	}
+
+	// 分割白名单中的IP/CIDR
+	allowedIPs := strings.Split(whitelist, ",")
+	for _, allowedIP := range allowedIPs {
+		allowedIP = strings.TrimSpace(allowedIP)
+		if allowedIP == "" {
+			continue
+		}
+
+		// 检查是否为CIDR格式
+		if strings.Contains(allowedIP, "/") {
+			_, ipNet, err := net.ParseCIDR(allowedIP)
+			if err != nil {
+				m.logger.Warn("无效的CIDR格式", zap.String("cidr", allowedIP))
+				continue
+			}
+			if ipNet.Contains(clientIPAddr) {
+				return true
+			}
+		} else {
+			// 单个IP地址
+			allowedIPAddr := net.ParseIP(allowedIP)
+			if allowedIPAddr != nil && allowedIPAddr.Equal(clientIPAddr) {
+				return true
+			}
+		}
+	}
+
+	return false
 }

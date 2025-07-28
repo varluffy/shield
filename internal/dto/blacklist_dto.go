@@ -18,6 +18,16 @@ type CheckBlacklistResponse struct {
 	PhoneMD5    string `json:"phone_md5" example:"5d41402abc4b2a76b9719d911017c592"`
 }
 
+// CheckBlacklistBatchRequest 批量黑名单查询请求
+type CheckBlacklistBatchRequest struct {
+	PhoneMD5List []string `json:"phone_md5_list" binding:"required,min=1,max=100"`
+}
+
+// CheckBlacklistBatchResponse 批量黑名单查询响应
+type CheckBlacklistBatchResponse struct {
+	Results []CheckBlacklistResponse `json:"results"`
+}
+
 // CreateBlacklistRequest 创建黑名单请求
 type CreateBlacklistRequest struct {
 	PhoneMD5 string `json:"phone_md5" binding:"required,len=32" example:"5d41402abc4b2a76b9719d911017c592"`
@@ -97,7 +107,34 @@ type CreateApiCredentialRequest struct {
 	Name        string     `json:"name" binding:"required,max=100" example:"测试密钥"`
 	Description string     `json:"description" example:"用于测试的API密钥"`
 	RateLimit   int        `json:"rate_limit" binding:"min=1,max=10000" example:"1000"`
+	IPWhitelist string     `json:"ip_whitelist" example:"192.168.1.0/24,10.0.0.1"`
 	ExpiresAt   *time.Time `json:"expires_at" example:"2024-12-31T23:59:59Z"`
+}
+
+// CreateApiCredentialResponse 创建API密钥响应
+type CreateApiCredentialResponse struct {
+	ApiCredentialInfo
+	APISecret string `json:"api_secret" example:"abc123..."`
+}
+
+// UpdateApiCredentialRequest 更新API密钥请求
+type UpdateApiCredentialRequest struct {
+	Name        string     `json:"name" binding:"required,max=100" example:"测试密钥"`
+	Description string     `json:"description" example:"用于测试的API密钥"`
+	RateLimit   int        `json:"rate_limit" binding:"min=1,max=10000" example:"1000"`
+	IPWhitelist string     `json:"ip_whitelist" example:"192.168.1.0/24,10.0.0.1"`
+	ExpiresAt   *time.Time `json:"expires_at" example:"2024-12-31T23:59:59Z"`
+}
+
+// UpdateStatusRequest 更新状态请求
+type UpdateStatusRequest struct {
+	Status string `json:"status" binding:"required,oneof=active inactive suspended" example:"active"`
+}
+
+// RegenerateSecretResponse 重新生成密钥响应
+type RegenerateSecretResponse struct {
+	APISecret string `json:"api_secret" example:"abc123..."`
+	Message   string `json:"message" example:"API Secret已重新生成，请妥善保存，此密钥仅显示一次"`
 }
 
 // ApiCredentialInfo API密钥信息

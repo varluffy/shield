@@ -24,6 +24,7 @@ var ProviderSet = wire.NewSet(
 
 	// 黑名单相关Handler
 	NewBlacklistHandler,
+	NewApiCredentialHandler,
 
 	// 这里可以添加其他Handler
 	// NewProductHandler,

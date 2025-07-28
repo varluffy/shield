@@ -73,6 +73,7 @@ func main() {
 		app.RoleHandler,
 		app.FieldPermissionHandler,
 		app.BlacklistHandler,
+		app.ApiCredentialHandler,
 		app.AuthMiddleware,
 		app.BlacklistAuthMiddleware,
 		app.BlacklistLogMiddleware,

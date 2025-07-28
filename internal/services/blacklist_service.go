@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/varluffy/shield/internal/models"
 	"github.com/varluffy/shield/internal/repositories"
 	"github.com/varluffy/shield/pkg/logger"
@@ -18,6 +19,7 @@ import (
 // BlacklistService 黑名单服务接口
 type BlacklistService interface {
 	CheckPhoneMD5(ctx context.Context, tenantID uint64, phoneMD5 string) (bool, error)
+	CheckPhoneMD5Batch(ctx context.Context, tenantID uint64, phoneMD5List []string) (map[string]bool, error)
 	CreateBlacklist(ctx context.Context, blacklist *models.PhoneBlacklist) error
 	BatchImportBlacklist(ctx context.Context, tenantID uint64, phoneMD5List []string, source, reason string, operatorID uint64) error
 	GetBlacklistByTenant(ctx context.Context, tenantID uint64, page, pageSize int) ([]*models.PhoneBlacklist, int64, error)
@@ -101,6 +103,95 @@ func (s *blacklistService) CheckPhoneMD5(ctx context.Context, tenantID uint64, p
 		zap.Bool("is_hit", exists))
 
 	return exists, nil
+}
+
+// CheckPhoneMD5Batch 批量检查手机号MD5是否在黑名单中
+func (s *blacklistService) CheckPhoneMD5Batch(ctx context.Context, tenantID uint64, phoneMD5List []string) (map[string]bool, error) {
+	if len(phoneMD5List) == 0 {
+		return make(map[string]bool), nil
+	}
+
+	// 构建Redis key
+	redisKey := fmt.Sprintf("blacklist:tenant:%d", tenantID)
+	
+	// 使用Redis Pipeline批量查询，提高性能
+	pipe := s.redis.Pipeline()
+	
+	// 为每个MD5创建查询命令
+	cmdMap := make(map[string]*redis.BoolCmd)
+	for _, phoneMD5 := range phoneMD5List {
+		cmd := pipe.SIsMember(ctx, redisKey, phoneMD5)
+		cmdMap[phoneMD5] = cmd
+	}
+
+	// 执行Pipeline
+	_, err := pipe.Exec(ctx)
+	if err != nil {
+		s.logger.WarnWithTrace(ctx, "Redis批量查询失败，回退到数据库查询",
+			zap.Error(err),
+			zap.Uint64("tenant_id", tenantID),
+			zap.Int("batch_size", len(phoneMD5List)))
+
+		// Redis失败时回退到数据库查询
+		return s.batchCheckFromDatabase(ctx, tenantID, phoneMD5List)
+	}
+
+	// 收集结果
+	results := make(map[string]bool)
+	for phoneMD5, cmd := range cmdMap {
+		exists, err := cmd.Result()
+		if err != nil {
+			s.logger.WarnWithTrace(ctx, "获取Redis查询结果失败",
+				zap.Error(err),
+				zap.String("phone_md5", phoneMD5))
+			// 单个查询失败时设置为false
+			results[phoneMD5] = false
+		} else {
+			results[phoneMD5] = exists
+		}
+	}
+
+	s.logger.DebugWithTrace(ctx, "批量黑名单查询完成",
+		zap.Uint64("tenant_id", tenantID),
+		zap.Int("total_count", len(phoneMD5List)),
+		zap.Int("hit_count", s.countHits(results)))
+
+	return results, nil
+}
+
+// batchCheckFromDatabase 从数据库批量检查黑名单
+func (s *blacklistService) batchCheckFromDatabase(ctx context.Context, tenantID uint64, phoneMD5List []string) (map[string]bool, error) {
+	results := make(map[string]bool)
+	
+	// 初始化所有结果为false
+	for _, phoneMD5 := range phoneMD5List {
+		results[phoneMD5] = false
+	}
+
+	// 从数据库批量查询存在的MD5
+	existingMD5List := make([]string, 0)
+	err := s.blacklistRepo.GetActiveMD5ListByTenantAndMD5List(ctx, tenantID, phoneMD5List, &existingMD5List)
+	if err != nil {
+		return nil, fmt.Errorf("数据库批量查询失败: %w", err)
+	}
+
+	// 标记存在的MD5为true
+	for _, phoneMD5 := range existingMD5List {
+		results[phoneMD5] = true
+	}
+
+	return results, nil
+}
+
+// countHits 计算命中数量
+func (s *blacklistService) countHits(results map[string]bool) int {
+	count := 0
+	for _, isHit := range results {
+		if isHit {
+			count++
+		}
+	}
+	return count
 }
 
 // CreateBlacklist 创建黑名单记录

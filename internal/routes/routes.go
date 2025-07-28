@@ -23,6 +23,7 @@ func SetupRoutes(
 	roleHandler *handlers.RoleHandler,
 	fieldPermissionHandler *handlers.FieldPermissionHandler,
 	blacklistHandler *handlers.BlacklistHandler,
+	apiCredentialHandler *handlers.ApiCredentialHandler,
 	authMiddleware *middleware.AuthMiddleware,
 	blacklistAuthMiddleware *middleware.BlacklistAuthMiddleware,
 	blacklistLogMiddleware *middleware.BlacklistLogMiddleware,
@@ -149,7 +150,8 @@ func SetupRoutes(
 		blacklist := api.Group("/blacklist")
 		blacklist.Use(blacklistAuthMiddleware.ValidateHMACAuth(), blacklistLogMiddleware.SamplingLogMiddleware())
 		{
-			blacklist.POST("/check", blacklistHandler.CheckBlacklist) // 检查黑名单
+			blacklist.POST("/check", blacklistHandler.CheckBlacklist)      // 检查黑名单
+			blacklist.POST("/check-batch", blacklistHandler.CheckBlacklistBatch) // 批量检查黑名单
 		}
 
 		// 黑名单管理API (JWT鉴权)
@@ -158,10 +160,24 @@ func SetupRoutes(
 		{
 			adminBlacklist.POST("", authMiddleware.ValidateAPIPermission(), blacklistHandler.CreateBlacklist)
 			adminBlacklist.POST("/import", authMiddleware.ValidateAPIPermission(), blacklistHandler.BatchImportBlacklist)
+			adminBlacklist.POST("/sync", authMiddleware.ValidateAPIPermission(), blacklistHandler.SyncBlacklistToRedis)
 			adminBlacklist.GET("", authMiddleware.ValidateAPIPermission(), blacklistHandler.GetBlacklistList)
 			adminBlacklist.DELETE("/:id", authMiddleware.ValidateAPIPermission(), blacklistHandler.DeleteBlacklist)
 			adminBlacklist.GET("/stats", authMiddleware.ValidateAPIPermission(), blacklistHandler.GetQueryStats)
 			adminBlacklist.GET("/stats/minutes", authMiddleware.ValidateAPIPermission(), blacklistHandler.GetMinuteStats)
+		}
+
+		// API密钥管理API (JWT鉴权)
+		apiCredentials := api.Group("/admin/api-credentials")
+		apiCredentials.Use(authMiddleware.RequireAuth()) // 要求认证
+		{
+			apiCredentials.POST("", authMiddleware.ValidateAPIPermission(), apiCredentialHandler.CreateApiCredential)
+			apiCredentials.GET("", authMiddleware.ValidateAPIPermission(), apiCredentialHandler.GetApiCredentials)
+			apiCredentials.GET("/:api_key", authMiddleware.ValidateAPIPermission(), apiCredentialHandler.GetApiCredential)
+			apiCredentials.PUT("/:id", authMiddleware.ValidateAPIPermission(), apiCredentialHandler.UpdateApiCredential)
+			apiCredentials.PUT("/:id/status", authMiddleware.ValidateAPIPermission(), apiCredentialHandler.UpdateApiCredentialStatus)
+			apiCredentials.DELETE("/:id", authMiddleware.ValidateAPIPermission(), apiCredentialHandler.DeleteApiCredential)
+			apiCredentials.POST("/:id/regenerate-secret", authMiddleware.ValidateAPIPermission(), apiCredentialHandler.RegenerateApiSecret)
 		}
 	}
 

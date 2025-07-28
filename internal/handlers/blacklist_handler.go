@@ -120,6 +120,110 @@ func (h *BlacklistHandler) CheckBlacklist(c *gin.Context) {
 	h.responseWriter.Success(c, resp)
 }
 
+// CheckBlacklistBatch 批量检查手机号MD5是否在黑名单中
+// @Summary 批量检查黑名单
+// @Description 批量检查手机号MD5是否在黑名单中
+// @Tags 黑名单查询
+// @Accept json
+// @Produce json
+// @Param X-API-Key header string true "API密钥"
+// @Param X-Timestamp header string true "时间戳"
+// @Param X-Nonce header string true "随机数"
+// @Param X-Signature header string true "HMAC签名"
+// @Param request body dto.CheckBlacklistBatchRequest true "批量查询请求"
+// @Success 200 {object} response.Response{data=dto.CheckBlacklistBatchResponse}
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 429 {object} response.Response
+// @Failure 500 {object} response.Response
+// @Router /api/v1/blacklist/check-batch [post]
+func (h *BlacklistHandler) CheckBlacklistBatch(c *gin.Context) {
+	start := time.Now()
+	ctx := c.Request.Context()
+
+	var req dto.CheckBlacklistBatchRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.logger.WarnWithTrace(ctx, "参数绑定失败",
+			zap.Error(err))
+		h.responseWriter.Error(c, errors.ErrValidationFailed("参数绑定失败"))
+		return
+	}
+
+	// 验证MD5格式
+	for _, phoneMD5 := range req.PhoneMD5List {
+		if len(phoneMD5) != 32 {
+			h.logger.WarnWithTrace(ctx, "MD5格式错误",
+				zap.String("phone_md5", phoneMD5))
+			h.responseWriter.Error(c, errors.ErrValidationFailed("MD5格式错误"))
+			return
+		}
+	}
+
+	// 从上下文获取租户ID
+	tenantID, exists := c.Get("tenant_id")
+	if !exists {
+		h.logger.ErrorWithTrace(ctx, "租户ID未找到")
+		h.responseWriter.Error(c, errors.ErrInternalError("租户信息丢失"))
+		return
+	}
+
+	tenantIDUint64, ok := tenantID.(uint64)
+	if !ok {
+		h.logger.ErrorWithTrace(ctx, "租户ID类型错误")
+		h.responseWriter.Error(c, errors.ErrInternalError("租户信息格式错误"))
+		return
+	}
+
+	// 批量检查黑名单
+	results, err := h.blacklistService.CheckPhoneMD5Batch(ctx, tenantIDUint64, req.PhoneMD5List)
+	if err != nil {
+		h.logger.ErrorWithTrace(ctx, "批量黑名单查询失败",
+			zap.Uint64("tenant_id", tenantIDUint64),
+			zap.Int("batch_size", len(req.PhoneMD5List)),
+			zap.Error(err))
+		h.responseWriter.Error(c, errors.ErrInternalError("查询失败"))
+		return
+	}
+
+	// 构建响应
+	responseList := make([]dto.CheckBlacklistResponse, 0, len(req.PhoneMD5List))
+	hitCount := 0
+	for _, phoneMD5 := range req.PhoneMD5List {
+		isBlacklist := results[phoneMD5]
+		if isBlacklist {
+			hitCount++
+		}
+		responseList = append(responseList, dto.CheckBlacklistResponse{
+			IsBlacklist: isBlacklist,
+			PhoneMD5:    phoneMD5,
+		})
+	}
+
+	resp := dto.CheckBlacklistBatchResponse{
+		Results: responseList,
+	}
+
+	// 计算响应时间
+	latencyMs := time.Since(start).Milliseconds()
+
+	// 更新查询统计（异步执行，不影响响应）
+	go func() {
+		apiKey := c.GetString("api_key")
+		// 对于批量查询，我们记录平均的命中情况
+		avgHitRate := float64(hitCount) / float64(len(req.PhoneMD5List))
+		isHit := avgHitRate > 0.5 // 如果超过一半命中，认为是命中
+		h.blacklistService.UpdateQueryMetrics(context.Background(), tenantIDUint64, apiKey, isHit, latencyMs)
+	}()
+
+	h.logger.DebugWithTrace(ctx, "批量黑名单查询成功",
+		zap.Uint64("tenant_id", tenantIDUint64),
+		zap.Int("total_count", len(req.PhoneMD5List)),
+		zap.Int("hit_count", hitCount),
+		zap.Duration("duration", time.Since(start)))
+
+	h.responseWriter.Success(c, resp)
+}
+
 // CreateBlacklist 创建黑名单记录
 // @Summary 创建黑名单
 // @Description 创建新的黑名单记录
@@ -487,4 +591,47 @@ func (h *BlacklistHandler) GetMinuteStats(c *gin.Context) {
 		zap.Int64("total_queries", stats.TotalQueries))
 
 	h.responseWriter.Success(c, resp)
+}
+
+// SyncBlacklistToRedis 同步黑名单数据到Redis
+// @Summary 同步黑名单到Redis
+// @Description 将租户的黑名单数据同步到Redis缓存
+// @Tags 黑名单管理
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 500 {object} response.Response
+// @Router /api/v1/admin/blacklist/sync [post]
+func (h *BlacklistHandler) SyncBlacklistToRedis(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// 获取租户ID
+	tenantID, exists := middleware.GetCurrentTenantID(c)
+	if !exists {
+		h.logger.ErrorWithTrace(ctx, "租户ID未找到")
+		h.responseWriter.Error(c, errors.ErrUnauthorized())
+		return
+	}
+
+	tenantIDUint64, _ := strconv.ParseUint(tenantID, 10, 64)
+
+	// 同步数据到Redis
+	err := h.blacklistService.SyncToRedis(ctx, tenantIDUint64)
+	if err != nil {
+		h.logger.ErrorWithTrace(ctx, "同步黑名单数据到Redis失败",
+			zap.Uint64("tenant_id", tenantIDUint64),
+			zap.Error(err))
+		h.responseWriter.Error(c, errors.ErrInternalError("同步失败"))
+		return
+	}
+
+	h.logger.InfoWithTrace(ctx, "同步黑名单数据到Redis成功",
+		zap.Uint64("tenant_id", tenantIDUint64))
+
+	h.responseWriter.Success(c, gin.H{
+		"message": "黑名单数据同步成功",
+	})
 }

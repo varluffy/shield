@@ -19,6 +19,7 @@ type BlacklistRepository interface {
 	Delete(ctx context.Context, id uint64) error
 	BatchCreate(ctx context.Context, blacklists []*models.PhoneBlacklist) error
 	GetActiveMD5ListByTenant(ctx context.Context, tenantID uint64) ([]string, error)
+	GetActiveMD5ListByTenantAndMD5List(ctx context.Context, tenantID uint64, phoneMD5List []string, result *[]string) error
 	ExistsByTenantAndMD5(ctx context.Context, tenantID uint64, phoneMD5 string) (bool, error)
 }
 
@@ -117,6 +118,17 @@ func (r *blacklistRepository) GetActiveMD5ListByTenant(ctx context.Context, tena
 		Where("tenant_id = ? AND is_active = ?", tenantID, true).
 		Pluck("phone_md5", &md5List).Error
 	return md5List, err
+}
+
+// GetActiveMD5ListByTenantAndMD5List 批量获取租户中存在的手机号MD5列表
+func (r *blacklistRepository) GetActiveMD5ListByTenantAndMD5List(ctx context.Context, tenantID uint64, phoneMD5List []string, result *[]string) error {
+	if len(phoneMD5List) == 0 {
+		return nil
+	}
+
+	return r.db.WithContext(ctx).Model(&models.PhoneBlacklist{}).
+		Where("tenant_id = ? AND phone_md5 IN ? AND is_active = ?", tenantID, phoneMD5List, true).
+		Pluck("phone_md5", result).Error
 }
 
 // ExistsByTenantAndMD5 检查指定租户和MD5是否存在黑名单记录

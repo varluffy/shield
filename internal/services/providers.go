@@ -28,6 +28,7 @@ var ProviderSet = wire.NewSet(
 	// Blacklist相关Service
 	NewBlacklistService,
 	NewBlacklistAuthService,
+	NewApiCredentialService,
 
 	// 这里可以添加其他Service
 	// NewProductService,
