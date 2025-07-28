@@ -141,6 +141,32 @@ type QueryStatsResponse struct {
 	AvgLatency   float64 `json:"avg_latency_ms" example:"5.2"`
 }
 
+// MinuteStatsRequest 分钟级统计请求
+type MinuteStatsRequest struct {
+	Minutes int `form:"minutes,default=5" binding:"min=1,max=60"`
+}
+
+// MinuteStatsResponse 分钟级统计响应
+type MinuteStatsResponse struct {
+	Timestamp    time.Time     `json:"timestamp"`
+	TotalQueries int64         `json:"total_queries"`
+	HitCount     int64         `json:"hit_count"`
+	MissCount    int64         `json:"miss_count"`
+	HitRate      float64       `json:"hit_rate"`
+	QPS          float64       `json:"qps"`
+	AvgLatency   float64       `json:"avg_latency_ms"`
+	MinuteData   []MinutePoint `json:"minute_data"`
+}
+
+// MinutePoint 每分钟数据点
+type MinutePoint struct {
+	Minute       string  `json:"minute"`
+	TotalQueries int64   `json:"total_queries"`
+	HitCount     int64   `json:"hit_count"`
+	QPS          float64 `json:"qps"`
+	AvgLatency   float64 `json:"avg_latency_ms"`
+}
+
 // BatchImportResponse 批量导入响应
 type BatchImportResponse struct {
 	SuccessCount int      `json:"success_count" example:"100"`

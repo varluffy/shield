@@ -161,6 +161,7 @@ func SetupRoutes(
 			adminBlacklist.GET("", authMiddleware.RequirePermission("blacklist_list_api"), blacklistHandler.GetBlacklistList)
 			adminBlacklist.DELETE("/:id", authMiddleware.RequirePermission("blacklist_delete_api"), blacklistHandler.DeleteBlacklist)
 			adminBlacklist.GET("/stats", authMiddleware.RequirePermission("blacklist_stats_api"), blacklistHandler.GetQueryStats)
+			adminBlacklist.GET("/stats/minutes", authMiddleware.RequirePermission("blacklist_stats_api"), blacklistHandler.GetMinuteStats)
 		}
 	}
 

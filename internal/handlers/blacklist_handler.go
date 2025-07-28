@@ -3,6 +3,7 @@
 package handlers
 
 import (
+	"context"
 	"strconv"
 	"time"
 
@@ -95,6 +96,15 @@ func (h *BlacklistHandler) CheckBlacklist(c *gin.Context) {
 
 	// 设置结果供日志中间件使用
 	c.Set("blacklist_result", isBlacklist)
+	
+	// 计算响应时间
+	latencyMs := time.Since(start).Milliseconds()
+	
+	// 更新查询统计（异步执行，不影响响应）
+	go func() {
+		apiKey := c.GetString("api_key")
+		h.blacklistService.UpdateQueryMetrics(context.Background(), tenantIDUint64, apiKey, isBlacklist, latencyMs)
+	}()
 
 	resp := dto.CheckBlacklistResponse{
 		IsBlacklist: isBlacklist,
@@ -406,5 +416,75 @@ func (h *BlacklistHandler) GetQueryStats(c *gin.Context) {
 		AvgLatency:   stats.AvgLatency,
 	}
 
+	h.responseWriter.Success(c, resp)
+}
+
+// GetMinuteStats 获取分钟级统计
+// @Summary 获取分钟级查询统计
+// @Description 获取最近N分钟的查询统计数据，包括QPS、命中率等
+// @Tags 黑名单管理
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param minutes query int false "统计分钟数" default(5) minimum(1) maximum(60)
+// @Success 200 {object} dto.MinuteStatsResponse "统计信息"
+// @Failure 400 {object} response.ErrorResponse "请求参数错误"
+// @Failure 401 {object} response.ErrorResponse "未授权"
+// @Failure 500 {object} response.ErrorResponse "服务器内部错误"
+// @Router /api/v1/admin/blacklist/stats/minutes [get]
+func (h *BlacklistHandler) GetMinuteStats(c *gin.Context) {
+	ctx := c.Request.Context()
+	
+	// 参数验证
+	var req dto.MinuteStatsRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		h.logger.WarnWithTrace(ctx, "参数绑定失败",
+			zap.Error(err))
+		h.responseWriter.Error(c, errors.ErrValidationFailed("参数验证失败"))
+		return
+	}
+	
+	// 获取租户ID
+	tenantID := c.GetUint64("tenant_id")
+	
+	// 获取分钟级统计
+	stats, err := h.blacklistService.GetMinuteStats(ctx, tenantID, req.Minutes)
+	if err != nil {
+		h.logger.ErrorWithTrace(ctx, "获取分钟级统计失败",
+			zap.Uint64("tenant_id", tenantID),
+			zap.Int("minutes", req.Minutes),
+			zap.Error(err))
+		h.responseWriter.Error(c, errors.ErrInternalError("获取统计失败"))
+		return
+	}
+	
+	// 转换响应
+	resp := dto.MinuteStatsResponse{
+		Timestamp:    stats.Timestamp,
+		TotalQueries: stats.TotalQueries,
+		HitCount:     stats.HitCount,
+		MissCount:    stats.MissCount,
+		HitRate:      stats.HitRate,
+		QPS:          stats.QPS,
+		AvgLatency:   stats.AvgLatency,
+		MinuteData:   make([]dto.MinutePoint, len(stats.MinuteData)),
+	}
+	
+	// 转换分钟数据
+	for i, point := range stats.MinuteData {
+		resp.MinuteData[i] = dto.MinutePoint{
+			Minute:       point.Minute,
+			TotalQueries: point.TotalQueries,
+			HitCount:     point.HitCount,
+			QPS:          point.QPS,
+			AvgLatency:   point.AvgLatency,
+		}
+	}
+	
+	h.logger.InfoWithTrace(ctx, "获取分钟级统计成功",
+		zap.Uint64("tenant_id", tenantID),
+		zap.Int("minutes", req.Minutes),
+		zap.Int64("total_queries", stats.TotalQueries))
+	
 	h.responseWriter.Success(c, resp)
 }

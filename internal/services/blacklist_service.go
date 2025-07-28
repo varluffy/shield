@@ -24,6 +24,8 @@ type BlacklistService interface {
 	DeleteBlacklist(ctx context.Context, id uint64) error
 	SyncToRedis(ctx context.Context, tenantID uint64) error
 	GetQueryStats(ctx context.Context, tenantID uint64, hours int) (*QueryStats, error)
+	GetMinuteStats(ctx context.Context, tenantID uint64, minutes int) (*MinuteStats, error)
+	UpdateQueryMetrics(ctx context.Context, tenantID uint64, apiKey string, isHit bool, latencyMs int64)
 }
 
 // QueryStats 查询统计信息
@@ -32,6 +34,27 @@ type QueryStats struct {
 	HitCount     int64   `json:"hit_count"`
 	MissCount    int64   `json:"miss_count"`
 	HitRate      float64 `json:"hit_rate"`
+	AvgLatency   float64 `json:"avg_latency_ms"`
+}
+
+// MinuteStats 分钟级统计信息
+type MinuteStats struct {
+	Timestamp    time.Time `json:"timestamp"`
+	TotalQueries int64     `json:"total_queries"`
+	HitCount     int64     `json:"hit_count"`
+	MissCount    int64     `json:"miss_count"`
+	HitRate      float64   `json:"hit_rate"`
+	QPS          float64   `json:"qps"`
+	AvgLatency   float64   `json:"avg_latency_ms"`
+	MinuteData   []MinutePoint `json:"minute_data"`
+}
+
+// MinutePoint 每分钟数据点
+type MinutePoint struct {
+	Minute       string  `json:"minute"`
+	TotalQueries int64   `json:"total_queries"`
+	HitCount     int64   `json:"hit_count"`
+	QPS          float64 `json:"qps"`
 	AvgLatency   float64 `json:"avg_latency_ms"`
 }
 
@@ -269,4 +292,121 @@ func (s *blacklistService) GetQueryStats(ctx context.Context, tenantID uint64, h
 	}
 	
 	return stats, nil
+}
+
+// GetMinuteStats 获取分钟级统计信息
+func (s *blacklistService) GetMinuteStats(ctx context.Context, tenantID uint64, minutes int) (*MinuteStats, error) {
+	stats := &MinuteStats{
+		Timestamp:  time.Now(),
+		MinuteData: make([]MinutePoint, 0, minutes),
+	}
+	
+	now := time.Now()
+	totalQueries := int64(0)
+	hitCount := int64(0)
+	totalLatency := int64(0)
+	
+	// 获取最近N分钟的数据
+	for i := 0; i < minutes; i++ {
+		minute := now.Add(-time.Duration(i) * time.Minute)
+		minuteKey := fmt.Sprintf("stats:minute:tenant:%d:%s", tenantID, minute.Format("200601021504"))
+		
+		// 获取每分钟统计
+		minuteStats, err := s.redis.HMGet(ctx, minuteKey, "total", "hits", "latency", "count").Result()
+		if err != nil {
+			continue
+		}
+		
+		var minuteTotal, minuteHits, minuteLatency, minuteCount int64
+		
+		if len(minuteStats) >= 4 {
+			if total, err := strconv.ParseInt(fmt.Sprintf("%v", minuteStats[0]), 10, 64); err == nil {
+				minuteTotal = total
+				totalQueries += total
+			}
+			if hits, err := strconv.ParseInt(fmt.Sprintf("%v", minuteStats[1]), 10, 64); err == nil {
+				minuteHits = hits
+				hitCount += hits
+			}
+			if latency, err := strconv.ParseInt(fmt.Sprintf("%v", minuteStats[2]), 10, 64); err == nil {
+				minuteLatency = latency
+				totalLatency += latency
+			}
+			if count, err := strconv.ParseInt(fmt.Sprintf("%v", minuteStats[3]), 10, 64); err == nil {
+				minuteCount = count
+			}
+		}
+		
+		// 计算该分钟的统计
+		point := MinutePoint{
+			Minute:       minute.Format("15:04"),
+			TotalQueries: minuteTotal,
+			HitCount:     minuteHits,
+			QPS:          float64(minuteTotal) / 60.0,
+		}
+		
+		if minuteCount > 0 {
+			point.AvgLatency = float64(minuteLatency) / float64(minuteCount)
+		}
+		
+		stats.MinuteData = append(stats.MinuteData, point)
+	}
+	
+	// 计算总体统计
+	stats.TotalQueries = totalQueries
+	stats.HitCount = hitCount
+	stats.MissCount = totalQueries - hitCount
+	
+	if totalQueries > 0 {
+		stats.HitRate = float64(hitCount) / float64(totalQueries) * 100
+		stats.QPS = float64(totalQueries) / float64(minutes*60)
+		stats.AvgLatency = float64(totalLatency) / float64(totalQueries)
+	}
+	
+	return stats, nil
+}
+
+// UpdateQueryMetrics 更新查询指标
+func (s *blacklistService) UpdateQueryMetrics(ctx context.Context, tenantID uint64, apiKey string, isHit bool, latencyMs int64) {
+	now := time.Now()
+	
+	// 分钟级统计key
+	minuteKey := fmt.Sprintf("stats:minute:tenant:%d:%s", tenantID, now.Format("200601021504"))
+	hourKey := fmt.Sprintf("stats:query:tenant:%d:%s", tenantID, now.Format("2006010215"))
+	
+	// 使用Pipeline批量更新
+	pipe := s.redis.Pipeline()
+	
+	// 更新分钟级统计
+	pipe.HIncrBy(ctx, minuteKey, "total", 1)
+	if isHit {
+		pipe.HIncrBy(ctx, minuteKey, "hits", 1)
+	}
+	pipe.HIncrBy(ctx, minuteKey, "latency", latencyMs)
+	pipe.HIncrBy(ctx, minuteKey, "count", 1)
+	pipe.Expire(ctx, minuteKey, 2*time.Hour) // 保留2小时
+	
+	// 更新小时级统计
+	pipe.HIncrBy(ctx, hourKey, "total", 1)
+	if isHit {
+		pipe.HIncrBy(ctx, hourKey, "hits", 1)
+	}
+	pipe.HIncrBy(ctx, hourKey, "latency", latencyMs)
+	pipe.Expire(ctx, hourKey, 48*time.Hour) // 保留48小时
+	
+	// 更新API Key的分钟级统计
+	apiMinuteKey := fmt.Sprintf("stats:minute:api:%s:%s", apiKey, now.Format("200601021504"))
+	pipe.HIncrBy(ctx, apiMinuteKey, "total", 1)
+	if isHit {
+		pipe.HIncrBy(ctx, apiMinuteKey, "hits", 1)
+	}
+	pipe.Expire(ctx, apiMinuteKey, 1*time.Hour) // API统计保留1小时
+	
+	_, err := pipe.Exec(ctx)
+	if err != nil {
+		s.logger.WarnWithTrace(ctx, "更新查询指标失败",
+			zap.Uint64("tenant_id", tenantID),
+			zap.String("api_key", apiKey),
+			zap.Error(err))
+	}
 }

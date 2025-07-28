@@ -7,6 +7,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
@@ -49,8 +50,8 @@ func NewBlacklistAuthService(
 
 // ValidateHMACSignature 验证HMAC签名
 func (s *blacklistAuthService) ValidateHMACSignature(ctx context.Context, apiKey, timestamp, nonce, signature, body string) (*models.BlacklistApiCredential, error) {
-	// 1. 获取API密钥信息
-	credential, err := s.apiCredRepo.GetActiveByAPIKey(ctx, apiKey)
+	// 1. 获取API密钥信息（优先从缓存获取）
+	credential, err := s.getAPICredentialWithCache(ctx, apiKey)
 	if err != nil {
 		s.logger.WarnWithTrace(ctx, "API密钥不存在或已失效",
 			zap.String("api_key", apiKey),
@@ -109,8 +110,8 @@ func (s *blacklistAuthService) ValidateHMACSignature(ctx context.Context, apiKey
 
 // CheckRateLimit 检查速率限制
 func (s *blacklistAuthService) CheckRateLimit(ctx context.Context, apiKey string) error {
-	// 获取API密钥配置
-	credential, err := s.apiCredRepo.GetActiveByAPIKey(ctx, apiKey)
+	// 获取API密钥配置（优先从缓存获取）
+	credential, err := s.getAPICredentialWithCache(ctx, apiKey)
 	if err != nil {
 		return fmt.Errorf("获取API密钥配置失败: %w", err)
 	}
@@ -222,6 +223,56 @@ func (s *blacklistAuthService) updateRealTimeStats(ctx context.Context, apiKey s
 	_, err := pipe.Exec(ctx)
 	if err != nil {
 		s.logger.WarnWithTrace(ctx, "更新实时统计失败",
+			zap.String("api_key", apiKey),
+			zap.Error(err))
+	}
+}
+
+// getAPICredentialWithCache 获取API密钥信息（带缓存）
+func (s *blacklistAuthService) getAPICredentialWithCache(ctx context.Context, apiKey string) (*models.BlacklistApiCredential, error) {
+	// 缓存key
+	cacheKey := fmt.Sprintf("api_credential:%s", apiKey)
+	
+	// 1. 尝试从缓存获取
+	credentialJSON, err := s.redis.Get(ctx, cacheKey).Result()
+	if err == nil && credentialJSON != "" {
+		// 缓存命中，反序列化
+		var credential models.BlacklistApiCredential
+		if err := json.Unmarshal([]byte(credentialJSON), &credential); err == nil {
+			s.logger.DebugWithTrace(ctx, "API密钥缓存命中",
+				zap.String("api_key", apiKey))
+			return &credential, nil
+		}
+	}
+	
+	// 2. 缓存未命中，从数据库查询
+	credential, err := s.apiCredRepo.GetActiveByAPIKey(ctx, apiKey)
+	if err != nil {
+		return nil, err
+	}
+	
+	// 3. 将结果写入缓存（设置5分钟过期）
+	credentialBytes, err := json.Marshal(credential)
+	if err == nil {
+		// 缓存5分钟，避免频繁查询数据库
+		err = s.redis.SetEx(ctx, cacheKey, string(credentialBytes), 5*time.Minute).Err()
+		if err != nil {
+			s.logger.WarnWithTrace(ctx, "缓存API密钥信息失败",
+				zap.String("api_key", apiKey),
+				zap.Error(err))
+			// 缓存失败不影响业务
+		}
+	}
+	
+	return credential, nil
+}
+
+// invalidateAPICredentialCache 清除API密钥缓存
+func (s *blacklistAuthService) invalidateAPICredentialCache(ctx context.Context, apiKey string) {
+	cacheKey := fmt.Sprintf("api_credential:%s", apiKey)
+	err := s.redis.Del(ctx, cacheKey).Err()
+	if err != nil {
+		s.logger.WarnWithTrace(ctx, "清除API密钥缓存失败",
 			zap.String("api_key", apiKey),
 			zap.Error(err))
 	}
