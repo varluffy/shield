@@ -39,10 +39,10 @@ func NewTenantRepository(db *gorm.DB, txManager transaction.TransactionManager, 
 // GetByID 根据ID获取租户
 func (r *TenantRepositoryImpl) GetByID(ctx context.Context, id uint64) (*models.Tenant, error) {
 	r.LogTransactionState(ctx, "Get Tenant By ID")
-	
+
 	var tenant models.Tenant
 	db := r.GetDB(ctx)
-	
+
 	err := db.Where("id = ?", id).First(&tenant).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -54,21 +54,21 @@ func (r *TenantRepositoryImpl) GetByID(ctx context.Context, id uint64) (*models.
 			zap.Error(err))
 		return nil, fmt.Errorf("failed to get tenant: %w", err)
 	}
-	
+
 	r.logger.DebugWithTrace(ctx, "Retrieved tenant by ID",
 		zap.Uint64("id", id),
 		zap.String("name", tenant.Name))
-	
+
 	return &tenant, nil
 }
 
 // GetByUUID 根据UUID获取租户
 func (r *TenantRepositoryImpl) GetByUUID(ctx context.Context, uuid string) (*models.Tenant, error) {
 	r.LogTransactionState(ctx, "Get Tenant By UUID")
-	
+
 	var tenant models.Tenant
 	db := r.GetDB(ctx)
-	
+
 	err := db.Where("uuid = ?", uuid).First(&tenant).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -80,21 +80,21 @@ func (r *TenantRepositoryImpl) GetByUUID(ctx context.Context, uuid string) (*mod
 			zap.Error(err))
 		return nil, fmt.Errorf("failed to get tenant: %w", err)
 	}
-	
+
 	r.logger.DebugWithTrace(ctx, "Retrieved tenant by UUID",
 		zap.String("uuid", uuid),
 		zap.String("name", tenant.Name))
-	
+
 	return &tenant, nil
 }
 
 // GetUUIDByID 根据ID获取租户UUID
 func (r *TenantRepositoryImpl) GetUUIDByID(ctx context.Context, id uint64) (string, error) {
 	r.LogTransactionState(ctx, "Get Tenant UUID By ID")
-	
+
 	var tenant models.Tenant
 	db := r.GetDB(ctx)
-	
+
 	err := db.Select("uuid").Where("id = ?", id).First(&tenant).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -106,10 +106,10 @@ func (r *TenantRepositoryImpl) GetUUIDByID(ctx context.Context, id uint64) (stri
 			zap.Error(err))
 		return "", fmt.Errorf("failed to get tenant UUID: %w", err)
 	}
-	
+
 	r.logger.DebugWithTrace(ctx, "Retrieved tenant UUID by ID",
 		zap.Uint64("id", id),
 		zap.String("uuid", tenant.UUID))
-	
+
 	return tenant.UUID, nil
 }

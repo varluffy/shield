@@ -30,4 +30,4 @@ var ProviderSet = wire.NewSet(
 	// NewOrderHandler,
 	// NewCategoryHandler,
 	// NewAuthHandler,
-) 
+)

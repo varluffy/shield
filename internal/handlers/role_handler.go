@@ -441,4 +441,4 @@ func (h *RoleHandler) GetRolePermissions(c *gin.Context) {
 		RoleID:      id,
 		Permissions: interfacePermissions,
 	})
-} 
+}

@@ -20,12 +20,12 @@ type UpdateUserRequest struct {
 
 // UserResponse 用户响应（对外只暴露UUID，不暴露内部ID）
 type UserResponse struct {
-	ID        string    `json:"id"`         // 使用UUID作为对外ID
+	ID        string    `json:"id"` // 使用UUID作为对外ID
 	Name      string    `json:"name"`
 	Email     string    `json:"email"`
 	Status    string    `json:"status"`
 	Active    bool      `json:"active"`
-	TenantID  string    `json:"tenant_id"`  // 使用UUID作为对外Tenant ID
+	TenantID  string    `json:"tenant_id"` // 使用UUID作为对外Tenant ID
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
@@ -149,7 +149,7 @@ type RolePermissionsResponse struct {
 
 // PermissionListResponse 权限列表响应
 type PermissionListResponse struct {
-	Permissions []interface{} `json:"permissions"`
+	Permissions []interface{}  `json:"permissions"`
 	Pagination  PaginationMeta `json:"pagination"`
 }
 
@@ -165,8 +165,21 @@ type UserPermissionsResponse struct {
 	APIs    []string `json:"apis"`
 }
 
+// MenuItemResponse 菜单项响应
+type MenuItemResponse struct {
+	ID       string             `json:"id"`       // 菜单ID（权限代码）
+	Name     string             `json:"name"`     // 菜单名称
+	Icon     string             `json:"icon"`     // 菜单图标
+	Path     string             `json:"path"`     // 菜单路径
+	Sort     int                `json:"sort"`     // 排序顺序
+	Type     string             `json:"type"`     // 菜单类型（menu）
+	Children []MenuItemResponse `json:"children"` // 子菜单
+}
+
 // UserMenuPermissionsResponse 用户菜单权限响应
-type UserMenuPermissionsResponse []interface{}
+type UserMenuPermissionsResponse struct {
+	Menus []MenuItemResponse `json:"menus"`
+}
 
 // UserFieldPermissionsResponse 用户字段权限响应
 type UserFieldPermissionsResponse struct {
@@ -189,10 +202,10 @@ type RoleFieldPermissionsResponse struct {
 
 // UpdateFieldPermissionsResponse 更新字段权限响应
 type UpdateFieldPermissionsResponse struct {
-	Message           string `json:"message"`
-	RoleID            uint64 `json:"role_id"`
-	TableName         string `json:"table_name"`
-	PermissionCount   int    `json:"permission_count"`
+	Message         string `json:"message"`
+	RoleID          uint64 `json:"role_id"`
+	TableName       string `json:"table_name"`
+	PermissionCount int    `json:"permission_count"`
 }
 
 // InitializeFieldsResponse 初始化字段响应

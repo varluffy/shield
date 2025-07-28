@@ -715,7 +715,7 @@ func (h *UserHandler) GetUsers(c *gin.Context) {
 
 7. **质量检查**
    ```bash
-   bash scripts/quality-check.sh
+   make wire && make test
    ```
 
 ## 📋 API 检查清单

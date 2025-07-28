@@ -18,4 +18,4 @@ type LoginWithCaptchaRequest struct {
 	Password  string `json:"password" binding:"required" example:"123456"`
 	CaptchaID string `json:"captcha_id" binding:"required" example:"abc123"`
 	Answer    string `json:"answer" binding:"required" example:"1234"`
-} 
+}

@@ -82,10 +82,10 @@ func (r *apiCredentialRepository) Delete(ctx context.Context, id uint64) error {
 func (r *apiCredentialRepository) GetActiveByAPIKey(ctx context.Context, apiKey string) (*models.BlacklistApiCredential, error) {
 	var credential models.BlacklistApiCredential
 	query := r.db.WithContext(ctx).Where("api_key = ? AND status = ?", apiKey, "active")
-	
+
 	// 如果设置了过期时间，检查是否过期
 	query = query.Where("(expires_at IS NULL OR expires_at > ?)", time.Now())
-	
+
 	err := query.First(&credential).Error
 	if err != nil {
 		return nil, err

@@ -94,9 +94,9 @@ type PaginationInfo struct {
 
 // CreateApiCredentialRequest 创建API密钥请求
 type CreateApiCredentialRequest struct {
-	Name        string `json:"name" binding:"required,max=100" example:"测试密钥"`
-	Description string `json:"description" example:"用于测试的API密钥"`
-	RateLimit   int    `json:"rate_limit" binding:"min=1,max=10000" example:"1000"`
+	Name        string     `json:"name" binding:"required,max=100" example:"测试密钥"`
+	Description string     `json:"description" example:"用于测试的API密钥"`
+	RateLimit   int        `json:"rate_limit" binding:"min=1,max=10000" example:"1000"`
 	ExpiresAt   *time.Time `json:"expires_at" example:"2024-12-31T23:59:59Z"`
 }
 

@@ -25,4 +25,4 @@ type FieldConfig struct {
 	Description  string `json:"description"`
 	SortOrder    int    `json:"sort_order"`
 	IsRequired   bool   `json:"is_required"`
-} 
+}

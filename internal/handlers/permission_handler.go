@@ -52,11 +52,11 @@ func (h *PermissionHandler) ListPermissions(c *gin.Context) {
 	// 获取查询参数（移除scope参数，由后端自动判断）
 	module := c.Query("module")
 	permType := c.Query("type")
-	
+
 	// 分页参数
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-	
+
 	if page <= 0 {
 		page = 1
 	}
@@ -66,7 +66,7 @@ func (h *PermissionHandler) ListPermissions(c *gin.Context) {
 
 	// 构造筛选条件
 	filter := map[string]interface{}{}
-	
+
 	if module != "" {
 		filter["module"] = module
 	}
@@ -172,7 +172,7 @@ func (h *PermissionHandler) ListSystemPermissions(c *gin.Context) {
 	// 分页参数
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-	
+
 	if page <= 0 {
 		page = 1
 	}
@@ -254,4 +254,4 @@ func (h *PermissionHandler) UpdatePermission(c *gin.Context) {
 		zap.Uint64("id", id))
 
 	h.responseWriter.Success(c, permission)
-} 
+}

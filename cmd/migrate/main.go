@@ -32,7 +32,7 @@ func main() {
 	var tenantID string
 
 	flag.StringVar(&configPath, "config", "", "Path to config file")
-	flag.StringVar(&action, "action", "migrate", "Action: migrate, create-user, update-user, list-users")
+	flag.StringVar(&action, "action", "migrate", "Action: migrate, create-user, update-user, list-users, create-test-users, clean-test-users, list-test-users")
 
 	// 迁移参数
 	flag.BoolVar(&clean, "clean", false, "Clean all tables before migration")
@@ -158,9 +158,24 @@ func main() {
 			log.Fatalf("Failed to list admins: %v", err)
 		}
 
+	case "create-test-users":
+		if err := CreateStandardTestUsers(db); err != nil {
+			log.Fatalf("Failed to create test users: %v", err)
+		}
+
+	case "clean-test-users":
+		if err := CleanTestUsers(db); err != nil {
+			log.Fatalf("Failed to clean test users: %v", err)
+		}
+
+	case "list-test-users":
+		if err := ListTestUsers(db); err != nil {
+			log.Fatalf("Failed to list test users: %v", err)
+		}
+
 	default:
 		fmt.Printf("Unknown action: %s\n", action)
-		fmt.Println("Available actions: migrate, create-user, update-user, list-users")
+		fmt.Println("Available actions: migrate, create-user, update-user, list-users, create-test-users, clean-test-users, list-test-users")
 		os.Exit(1)
 	}
 }

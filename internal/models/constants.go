@@ -35,6 +35,7 @@ const (
 
 // Permission modules
 const (
+	ModuleAuth      = "auth"      // 认证授权
 	ModuleUser      = "user"      // 用户管理
 	ModuleRole      = "role"      // 角色管理
 	ModuleSystem    = "system"    // 系统管理
@@ -71,4 +72,4 @@ const (
 	TenantStatusActive    = "active"
 	TenantStatusInactive  = "inactive"
 	TenantStatusSuspended = "suspended"
-) 
+)

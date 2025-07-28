@@ -15,7 +15,9 @@
       "Bash(/Users/leng/go/bin/swag init -g cmd/server/main.go --output docs --parseDependency --parseInternal --quiet)",
       "Bash(git add:*)",
       "mcp__dbhub-mysql-npx__execute_sql",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(go run:*)",
+      "Bash(curl:*)"
     ],
     "deny": []
   },

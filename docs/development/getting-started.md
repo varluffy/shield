@@ -161,7 +161,7 @@ make restart-service   # 重启服务
 make wire             # 重新生成依赖注入代码
 make test             # 运行所有测试
 make docs             # 生成 API 文档
-bash scripts/quality-check.sh  # 完整质量检查
+make build            # 构建检查
 ```
 
 ### 数据库操作
@@ -256,6 +256,6 @@ go test -v -cover ./...
 
 如遇到问题，可以：
 1. 查看详细错误日志
-2. 运行 `bash scripts/quality-check.sh` 检查环境
+2. 运行 `make test` 检查功能
 3. 参考项目文档 `docs/` 目录
 4. 联系项目维护者

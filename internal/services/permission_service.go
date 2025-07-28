@@ -17,6 +17,8 @@ import (
 type PermissionService interface {
 	// CheckUserPermission 检查用户是否拥有指定权限
 	CheckUserPermission(ctx context.Context, userID, tenantID, permissionCode string) (bool, error)
+	// CheckUserAPIPermission 检查用户是否有访问指定API的权限
+	CheckUserAPIPermission(ctx context.Context, userID, tenantID, path, method string) (bool, error)
 	// GetUserRoles 获取用户角色
 	GetUserRoles(ctx context.Context, userID, tenantID string) ([]models.Role, error)
 	// GetUserPermissions 获取用户权限
@@ -45,6 +47,14 @@ type PermissionService interface {
 	GetPermissionByCode(ctx context.Context, code string) (*models.Permission, error)
 	// GetPermissionByID 根据ID获取权限
 	GetPermissionByID(ctx context.Context, id uint64) (*models.Permission, error)
+	
+	// 菜单权限方法
+	// GetUserMenuPermissions 获取用户菜单权限
+	GetUserMenuPermissions(ctx context.Context, userID, tenantID string) ([]models.Permission, error)
+	// BuildMenuTree 构建菜单树结构
+	BuildMenuTree(ctx context.Context, permissions []models.Permission) []interface{}
+	// GetMenuPermissionsByScope 根据范围获取菜单权限
+	GetMenuPermissionsByScope(ctx context.Context, scope string) ([]models.Permission, error)
 }
 
 // permissionService 权限服务实现
@@ -635,6 +645,75 @@ func (s *permissionService) GetPermissionByCode(ctx context.Context, code string
 	return permission, nil
 }
 
+// CheckUserAPIPermission 检查用户是否有访问指定API的权限
+func (s *permissionService) CheckUserAPIPermission(ctx context.Context, userID, tenantID, path, method string) (bool, error) {
+	s.logger.DebugWithTrace(ctx, "Checking user API permission",
+		zap.String("user_id", userID),
+		zap.String("tenant_id", tenantID),
+		zap.String("path", path),
+		zap.String("method", method))
+
+	// 1. 获取匹配该路径和方法的权限
+	permissions, err := s.permissionRepo.GetPermissionsByPathAndMethod(ctx, path, method)
+	if err != nil {
+		s.logger.ErrorWithTrace(ctx, "Failed to get permissions by path and method",
+			zap.String("path", path),
+			zap.String("method", method),
+			zap.Error(err))
+		return false, fmt.Errorf("failed to get permissions: %w", err)
+	}
+
+	// 如果没有找到匹配的权限，默认拒绝访问
+	if len(permissions) == 0 {
+		s.logger.DebugWithTrace(ctx, "No permissions found for API path",
+			zap.String("path", path),
+			zap.String("method", method))
+		return false, nil
+	}
+
+	// 2. 获取用户的所有权限
+	userPermissions, err := s.GetUserPermissions(ctx, userID, tenantID)
+	if err != nil {
+		s.logger.ErrorWithTrace(ctx, "Failed to get user permissions",
+			zap.String("user_id", userID),
+			zap.String("tenant_id", tenantID),
+			zap.Error(err))
+		return false, fmt.Errorf("failed to get user permissions: %w", err)
+	}
+
+	// 3. 创建用户权限代码映射，用于快速查找
+	userPermissionCodes := make(map[string]bool)
+	for _, perm := range userPermissions {
+		userPermissionCodes[perm.Code] = true
+	}
+
+	// 4. 检查用户是否拥有任意一个匹配的权限
+	for _, apiPermission := range permissions {
+		if userPermissionCodes[apiPermission.Code] {
+			s.logger.DebugWithTrace(ctx, "API permission granted",
+				zap.String("user_id", userID),
+				zap.String("path", path),
+				zap.String("method", method),
+				zap.String("permission_code", apiPermission.Code))
+			return true, nil
+		}
+	}
+
+	// 记录所有匹配的权限代码，用于调试
+	var requiredPermissions []string
+	for _, perm := range permissions {
+		requiredPermissions = append(requiredPermissions, perm.Code)
+	}
+
+	s.logger.DebugWithTrace(ctx, "API permission denied",
+		zap.String("user_id", userID),
+		zap.String("path", path),
+		zap.String("method", method),
+		zap.Strings("required_permissions", requiredPermissions))
+
+	return false, nil
+}
+
 // GetPermissionByID 根据ID获取权限
 func (s *permissionService) GetPermissionByID(ctx context.Context, id uint64) (*models.Permission, error) {
 	s.logger.DebugWithTrace(ctx, "Getting permission by ID",
@@ -653,4 +732,218 @@ func (s *permissionService) GetPermissionByID(ctx context.Context, id uint64) (*
 		zap.String("code", permission.Code))
 
 	return permission, nil
+}
+
+// GetUserMenuPermissions 获取用户菜单权限
+func (s *permissionService) GetUserMenuPermissions(ctx context.Context, userID, tenantID string) ([]models.Permission, error) {
+	s.logger.DebugWithTrace(ctx, "Getting user menu permissions",
+		zap.String("user_id", userID),
+		zap.String("tenant_id", tenantID))
+
+	// 检查是否为系统管理员
+	isSystemAdmin, err := s.IsSystemAdmin(ctx, userID)
+	if err != nil {
+		s.logger.ErrorWithTrace(ctx, "Failed to check if user is system admin",
+			zap.String("user_id", userID),
+			zap.Error(err))
+		return nil, fmt.Errorf("failed to check system admin status: %w", err)
+	}
+
+	var menuPermissions []models.Permission
+
+	if isSystemAdmin {
+		// 系统管理员：获取系统菜单权限
+		systemMenus, err := s.GetMenuPermissionsByScope(ctx, "system")
+		if err != nil {
+			s.logger.ErrorWithTrace(ctx, "Failed to get system menu permissions",
+				zap.String("user_id", userID),
+				zap.Error(err))
+			return nil, fmt.Errorf("failed to get system menu permissions: %w", err)
+		}
+		menuPermissions = append(menuPermissions, systemMenus...)
+	}
+
+	// 获取用户在租户内的菜单权限
+	userPermissions, err := s.GetUserPermissions(ctx, userID, tenantID)
+	if err != nil {
+		s.logger.ErrorWithTrace(ctx, "Failed to get user permissions",
+			zap.String("user_id", userID),
+			zap.String("tenant_id", tenantID),
+			zap.Error(err))
+		return nil, fmt.Errorf("failed to get user permissions: %w", err)
+	}
+
+	// 过滤出菜单类型的权限
+	for _, perm := range userPermissions {
+		if perm.Type == "menu" {
+			menuPermissions = append(menuPermissions, perm)
+		}
+	}
+
+	s.logger.DebugWithTrace(ctx, "Retrieved user menu permissions",
+		zap.String("user_id", userID),
+		zap.String("tenant_id", tenantID),
+		zap.Int("menu_count", len(menuPermissions)),
+		zap.Bool("is_system_admin", isSystemAdmin))
+
+	return menuPermissions, nil
+}
+
+// BuildMenuTree 构建菜单树结构
+func (s *permissionService) BuildMenuTree(ctx context.Context, permissions []models.Permission) []interface{} {
+	s.logger.DebugWithTrace(ctx, "Building menu tree",
+		zap.Int("permission_count", len(permissions)))
+
+	// 创建权限映射
+	permMap := make(map[string]models.Permission)
+	for _, perm := range permissions {
+		permMap[perm.Code] = perm
+	}
+
+	// 找到根节点（没有父权限的节点）
+	var roots []interface{}
+	processed := make(map[string]bool)
+
+	for _, perm := range permissions {
+		if perm.ParentCode == "" && !processed[perm.Code] {
+			node := s.buildMenuTreeNode(perm, permMap, processed)
+			roots = append(roots, node)
+		}
+	}
+
+	s.logger.DebugWithTrace(ctx, "Built menu tree",
+		zap.Int("root_count", len(roots)))
+
+	return roots
+}
+
+// buildMenuTreeNode 构建菜单树节点
+func (s *permissionService) buildMenuTreeNode(perm models.Permission, permMap map[string]models.Permission, processed map[string]bool) map[string]interface{} {
+	processed[perm.Code] = true
+
+	// 优先使用数据库中的菜单配置，否则使用生成策略
+	path := perm.MenuPath
+	if path == "" {
+		path = s.generateMenuPath(perm)
+	}
+	
+	icon := perm.MenuIcon  
+	if icon == "" {
+		icon = s.generateMenuIcon(perm)
+	}
+	
+	// 调试输出（已完成）
+	s.logger.DebugWithTrace(context.Background(), "Menu tree node data",
+		zap.String("code", perm.Code),
+		zap.String("db_icon", perm.MenuIcon),
+		zap.String("db_path", perm.MenuPath),
+		zap.String("final_icon", icon),
+		zap.String("final_path", path))
+
+	node := map[string]interface{}{
+		"id":        perm.Code,
+		"name":      perm.Name,
+		"icon":      icon,
+		"path":      path,
+		"sort":      perm.SortOrder,
+		"type":      perm.Type,
+		"component": perm.MenuComponent,
+		"visible":   perm.MenuVisible,
+		"children":  []interface{}{},
+	}
+
+	// 查找子节点
+	var children []interface{}
+	for _, p := range permMap {
+		if p.ParentCode == perm.Code && !processed[p.Code] {
+			childNode := s.buildMenuTreeNode(p, permMap, processed)
+			children = append(children, childNode)
+		}
+	}
+
+	node["children"] = children
+	return node
+}
+
+// generateMenuPath 根据权限生成菜单路径
+func (s *permissionService) generateMenuPath(perm models.Permission) string {
+	pathMap := map[string]string{
+		"system_menu":     "/system",
+		"tenant_menu":     "/system/tenants",
+		"permission_menu": "/system/permissions",
+		"user_menu":       "/users",
+		"role_menu":       "/roles",
+	}
+
+	if path, exists := pathMap[perm.Code]; exists {
+		return path
+	}
+
+	// 默认路径生成策略
+	switch perm.Module {
+	case "user":
+		return "/users"
+	case "role":
+		return "/roles"
+	case "system":
+		return "/system"
+	case "tenant":
+		return "/system/tenants"
+	default:
+		return "/" + perm.Module
+	}
+}
+
+// generateMenuIcon 根据权限生成菜单图标
+func (s *permissionService) generateMenuIcon(perm models.Permission) string {
+	iconMap := map[string]string{
+		"system_menu":     "settings",
+		"tenant_menu":     "apartment",
+		"permission_menu": "security",
+		"user_menu":       "person",
+		"role_menu":       "group",
+	}
+
+	if icon, exists := iconMap[perm.Code]; exists {
+		return icon
+	}
+
+	// 默认图标生成策略
+	switch perm.Module {
+	case "user":
+		return "person"
+	case "role":
+		return "group"
+	case "system":
+		return "settings"
+	case "tenant":
+		return "apartment"
+	default:
+		return "menu"
+	}
+}
+
+// GetMenuPermissionsByScope 根据范围获取菜单权限
+func (s *permissionService) GetMenuPermissionsByScope(ctx context.Context, scope string) ([]models.Permission, error) {
+	s.logger.DebugWithTrace(ctx, "Getting menu permissions by scope",
+		zap.String("scope", scope))
+
+	filter := map[string]interface{}{
+		"type":  "menu",
+		"scope": scope,
+	}
+
+	permissions, _, err := s.permissionRepo.List(ctx, filter, 1, 1000) // 获取所有菜单权限
+	if err != nil {
+		s.logger.ErrorWithTrace(ctx, "Failed to get menu permissions by scope",
+			zap.String("scope", scope),
+			zap.Error(err))
+		return nil, fmt.Errorf("failed to get menu permissions: %w", err)
+	}
+
+	s.logger.DebugWithTrace(ctx, "Retrieved menu permissions by scope",
+		zap.String("scope", scope),
+		zap.Int("count", len(permissions)))
+
+	return permissions, nil
 }

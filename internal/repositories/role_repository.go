@@ -373,7 +373,7 @@ func (r *roleRepository) RemoveRoleFromUserByUUID(ctx context.Context, userUUID,
 		zap.String("role_uuid", roleUUID))
 
 	db := r.GetDB(ctx)
-	
+
 	// 先获取用户和角色的内部ID
 	var userID, roleID uint64
 	if err := db.WithContext(ctx).Model(&models.User{}).Select("id").Where("uuid = ?", userUUID).Scan(&userID).Error; err != nil {
@@ -482,4 +482,4 @@ func (r *roleRepository) GetSystemRoles(ctx context.Context) ([]models.Role, err
 		zap.Int("role_count", len(roles)))
 
 	return roles, nil
-} 
+}

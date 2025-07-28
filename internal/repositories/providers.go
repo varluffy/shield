@@ -15,10 +15,10 @@ var ProviderSet = wire.NewSet(
 
 	// Permission相关Repository
 	NewPermissionRepository,
-	
+
 	// Tenant相关Repository
 	NewTenantRepository,
-	
+
 	// Permission Audit相关Repository
 	NewPermissionAuditRepository,
 

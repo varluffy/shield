@@ -17,20 +17,23 @@ import (
 
 // UserHandler 用户处理器
 type UserHandler struct {
-	userService    services.UserService
-	logger         *logger.Logger
-	responseWriter *response.ResponseWriter
+	userService       services.UserService
+	permissionService services.PermissionService
+	logger            *logger.Logger
+	responseWriter    *response.ResponseWriter
 }
 
 // NewUserHandler 创建用户处理器
 func NewUserHandler(
 	userService services.UserService,
+	permissionService services.PermissionService,
 	logger *logger.Logger,
 ) *UserHandler {
 	return &UserHandler{
-		userService:    userService,
-		logger:         logger,
-		responseWriter: response.NewResponseWriter(logger),
+		userService:       userService,
+		permissionService: permissionService,
+		logger:            logger,
+		responseWriter:    response.NewResponseWriter(logger),
 	}
 }
 
@@ -467,13 +470,13 @@ func (h *UserHandler) GetUserPermissions(c *gin.Context) {
 	ctx := c.Request.Context()
 	userID := c.GetString("user_id")
 	tenantID := c.GetString("tenant_id")
-	
+
 	if userID == "" || tenantID == "" {
 		h.logger.WarnWithTrace(ctx, "Missing user_id or tenant_id in context")
 		h.responseWriter.Error(c, errors.ErrUnauthorized())
 		return
 	}
-	
+
 	// 这里需要调用权限服务获取用户权限
 	// 暂时返回空数组，实际应该调用 permissionService.GetUserPermissions
 	permissions := dto.UserPermissionsResponse{
@@ -481,7 +484,7 @@ func (h *UserHandler) GetUserPermissions(c *gin.Context) {
 		Buttons: []string{},
 		APIs:    []string{},
 	}
-	
+
 	h.responseWriter.Success(c, permissions)
 }
 
@@ -499,18 +502,103 @@ func (h *UserHandler) GetUserMenuPermissions(c *gin.Context) {
 	ctx := c.Request.Context()
 	userID := c.GetString("user_id")
 	tenantID := c.GetString("tenant_id")
-	
+
 	if userID == "" || tenantID == "" {
 		h.logger.WarnWithTrace(ctx, "Missing user_id or tenant_id in context")
 		h.responseWriter.Error(c, errors.ErrUnauthorized())
 		return
 	}
-	
-	// 这里需要调用权限服务获取用户菜单权限
-	// 暂时返回空数组，实际应该调用 permissionService.GetUserMenuPermissions
-	menuPermissions := dto.UserMenuPermissionsResponse{}
-	
-	h.responseWriter.Success(c, menuPermissions)
+
+	h.logger.DebugWithTrace(ctx, "Getting user menu permissions",
+		zap.String("user_id", userID),
+		zap.String("tenant_id", tenantID))
+
+	// 获取用户菜单权限
+	menuPermissions, err := h.permissionService.GetUserMenuPermissions(ctx, userID, tenantID)
+	if err != nil {
+		h.logger.ErrorWithTrace(ctx, "Failed to get user menu permissions",
+			zap.String("user_id", userID),
+			zap.String("tenant_id", tenantID),
+			zap.Error(err))
+		h.responseWriter.Error(c, errors.ErrInternalError("failed to get menu permissions"))
+		return
+	}
+
+	// 构建菜单树
+	menuTree := h.permissionService.BuildMenuTree(ctx, menuPermissions)
+
+	// 转换为DTO格式
+	response := h.buildMenuResponse(menuTree)
+
+	h.logger.InfoWithTrace(ctx, "Successfully retrieved user menu permissions",
+		zap.String("user_id", userID),
+		zap.String("tenant_id", tenantID),
+		zap.Int("menu_count", len(response.Menus)))
+
+	h.responseWriter.Success(c, response)
+}
+
+// buildMenuResponse 构建菜单响应
+func (h *UserHandler) buildMenuResponse(menuTree []interface{}) dto.UserMenuPermissionsResponse {
+	var menus []dto.MenuItemResponse
+
+	for _, item := range menuTree {
+		if menuItem, ok := item.(map[string]interface{}); ok {
+			menu := h.convertToMenuDTO(menuItem)
+			menus = append(menus, menu)
+		}
+	}
+
+	return dto.UserMenuPermissionsResponse{
+		Menus: menus,
+	}
+}
+
+// convertToMenuDTO 转换为菜单DTO
+func (h *UserHandler) convertToMenuDTO(item map[string]interface{}) dto.MenuItemResponse {
+	menu := dto.MenuItemResponse{
+		ID:   getString(item, "id"),
+		Name: getString(item, "name"),
+		Icon: getString(item, "icon"),
+		Path: getString(item, "path"),
+		Sort: getInt(item, "sort"),
+		Type: getString(item, "type"),
+	}
+
+	// 处理子菜单
+	if children, ok := item["children"].([]interface{}); ok {
+		for _, child := range children {
+			if childItem, ok := child.(map[string]interface{}); ok {
+				childMenu := h.convertToMenuDTO(childItem)
+				menu.Children = append(menu.Children, childMenu)
+			}
+		}
+	}
+
+	return menu
+}
+
+// getString 安全获取字符串值
+func getString(item map[string]interface{}, key string) string {
+	if val, ok := item[key].(string); ok {
+		return val
+	}
+	return ""
+}
+
+// getInt 安全获取整数值
+func getInt(item map[string]interface{}, key string) int {
+	if val, ok := item[key].(int); ok {
+		return val
+	}
+	// 尝试从其他数值类型转换
+	if val, ok := item[key].(float64); ok {
+		return int(val)
+	}
+	if val, ok := item[key].(int64); ok {
+		return int(val)
+	}
+	return 0
 }
 
 // GetUserFieldPermissions 获取当前用户字段权限
@@ -529,25 +617,25 @@ func (h *UserHandler) GetUserFieldPermissions(c *gin.Context) {
 	userID := c.GetString("user_id")
 	tenantID := c.GetString("tenant_id")
 	tableName := c.Param("tableName")
-	
+
 	if userID == "" || tenantID == "" {
 		h.logger.WarnWithTrace(ctx, "Missing user_id or tenant_id in context")
 		h.responseWriter.Error(c, errors.ErrUnauthorized())
 		return
 	}
-	
+
 	if tableName == "" {
 		h.logger.WarnWithTrace(ctx, "Missing table name parameter")
 		h.responseWriter.Error(c, errors.ErrInvalidRequest())
 		return
 	}
-	
+
 	// 这里需要调用字段权限服务获取用户字段权限
 	// 暂时返回空对象，实际应该调用 fieldPermissionService.GetUserFieldPermissions
 	fieldPermissions := dto.UserFieldPermissionsResponse{
 		TableName: tableName,
 		Fields:    []interface{}{},
 	}
-	
+
 	h.responseWriter.Success(c, fieldPermissions)
 }

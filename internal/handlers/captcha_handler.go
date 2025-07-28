@@ -11,9 +11,9 @@ import (
 
 // CaptchaHandler handles captcha-related HTTP requests
 type CaptchaHandler struct {
-	captchaService   captcha.CaptchaService
-	responseWriter   *response.ResponseWriter
-	logger           *zap.Logger
+	captchaService captcha.CaptchaService
+	responseWriter *response.ResponseWriter
+	logger         *zap.Logger
 }
 
 // NewCaptchaHandler creates a new captcha handler
@@ -36,26 +36,26 @@ func NewCaptchaHandler(captchaService captcha.CaptchaService, responseWriter *re
 // @Router /captcha/generate [get]
 func (h *CaptchaHandler) GenerateCaptcha(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	// 生成验证码
 	captchaResp, err := h.captchaService.GenerateCaptcha(ctx)
 	if err != nil {
-		h.logger.Error("Failed to generate captcha", 
+		h.logger.Error("Failed to generate captcha",
 			zap.Error(err))
-		
+
 		h.responseWriter.Error(c, errors.ErrCaptchaGenerate())
 		return
 	}
-	
+
 	// 转换为DTO
 	result := &dto.CaptchaGenerateResponse{
 		CaptchaID:    captchaResp.CaptchaID,
 		CaptchaImage: captchaResp.CaptchaImage,
 	}
-	
+
 	h.logger.Info("Captcha generated successfully",
 		zap.String("captcha_id", result.CaptchaID))
-	
+
 	h.responseWriter.Success(c, result)
 }
 
@@ -72,29 +72,29 @@ func (h *CaptchaHandler) GenerateCaptcha(c *gin.Context) {
 // @Router /captcha/verify [post]
 func (h *CaptchaHandler) VerifyCaptcha(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	var req dto.CaptchaVerifyRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		h.logger.Warn("Invalid captcha verify request", 
+		h.logger.Warn("Invalid captcha verify request",
 			zap.Error(err))
-		
+
 		h.responseWriter.ValidationError(c, err)
 		return
 	}
-	
+
 	// 验证验证码
 	err := h.captchaService.VerifyCaptcha(ctx, req.CaptchaID, req.Answer)
 	if err != nil {
-		h.logger.Warn("Captcha verification failed", 
+		h.logger.Warn("Captcha verification failed",
 			zap.Error(err),
 			zap.String("captcha_id", req.CaptchaID))
-		
+
 		h.responseWriter.Error(c, errors.ErrCaptchaInvalid())
 		return
 	}
-	
+
 	h.logger.Info("Captcha verified successfully",
 		zap.String("captcha_id", req.CaptchaID))
-	
+
 	h.responseWriter.Success(c, nil)
-} 
+}

@@ -28,8 +28,8 @@ func TestPermissionSystemIntegration(t *testing.T) {
 	}
 	defer cleanup()
 
-	// 种子测试数据
-	SeedTestData(db)
+	// 设置标准测试用户
+	testUsers := SetupStandardTestUsers(db)
 
 	// 创建测试组件
 	cfg := NewTestConfig()
@@ -46,21 +46,31 @@ func TestPermissionSystemIntegration(t *testing.T) {
 		components.PermissionHandler,
 		components.RoleHandler,
 		components.FieldPermissionHandler,
+		nil, // blacklistHandler - 测试中不需要
 		components.AuthMiddleware,
+		nil, // blacklistAuthMiddleware - 测试中不需要
+		nil, // blacklistLogMiddleware - 测试中不需要
 	)
 
 	t.Run("Test System Admin Permission Access", func(t *testing.T) {
 		// 获取系统管理员用户
-		systemAdmin := CreateSystemAdmin(db)
+		systemAdmin := testUsers["admin@system.test"]
+		require.NotNil(t, systemAdmin, "系统管理员用户应该存在")
 
 		// 生成JWT Token
-		token, err := components.JWTService.GenerateAccessToken(systemAdmin.UUID, systemAdmin.Email, "0")
+		token, err := GenerateTestJWT(components, systemAdmin.UUID, "0")
 		require.NoError(t, err)
 
 		// 测试系统管理员访问权限列表（应该返回所有权限）
 		req := httptest.NewRequest("GET", "/api/v1/permissions", nil)
-		req.Header.Set("Authorization", "Bearer "+token)
-		req.Header.Set("Content-Type", "application/json")
+		
+		// 使用认证辅助方法设置Header
+		authHeaders := CreateAuthHeader(token)
+		for key, values := range authHeaders {
+			for _, value := range values {
+				req.Header.Add(key, value)
+			}
+		}
 
 		// 添加用户上下文
 		ctx := context.WithValue(req.Context(), "user_id", systemAdmin.UUID)
@@ -92,22 +102,28 @@ func TestPermissionSystemIntegration(t *testing.T) {
 	})
 
 	t.Run("Test Tenant Admin Permission Access", func(t *testing.T) {
-		// 创建租户和租户用户
-		tenant := CreateTestTenant(db)
-		tenantUser := CreateTestUser(db, tenant.ID, "tenant.admin@test.com")
+		// 获取租户管理员用户
+		tenantAdmin := testUsers["admin@tenant.test"]
+		require.NotNil(t, tenantAdmin, "租户管理员用户应该存在")
 
 		// 生成JWT Token
-		token, err := components.JWTService.GenerateAccessToken(tenantUser.UUID, tenantUser.Email, string(rune(tenant.ID)))
+		token, err := GenerateTestJWT(components, tenantAdmin.UUID, "1")
 		require.NoError(t, err)
 
 		// 测试租户管理员访问权限列表（应该只返回租户权限）
 		req := httptest.NewRequest("GET", "/api/v1/permissions", nil)
-		req.Header.Set("Authorization", "Bearer "+token)
-		req.Header.Set("Content-Type", "application/json")
+		
+		// 使用认证辅助方法设置Header
+		authHeaders := CreateAuthHeader(token)
+		for key, values := range authHeaders {
+			for _, value := range values {
+				req.Header.Add(key, value)
+			}
+		}
 
 		// 添加用户上下文
-		ctx := context.WithValue(req.Context(), "user_id", tenantUser.UUID)
-		ctx = context.WithValue(ctx, "tenant_id", string(rune(tenant.ID)))
+		ctx := context.WithValue(req.Context(), "user_id", tenantAdmin.UUID)
+		ctx = context.WithValue(ctx, "tenant_id", "1")
 		req = req.WithContext(ctx)
 
 		w := httptest.NewRecorder()
@@ -147,13 +163,22 @@ func TestPermissionSystemIntegration(t *testing.T) {
 
 	t.Run("Test Permission Tree API", func(t *testing.T) {
 		// 测试权限树接口的自动过滤功能
-		systemAdmin := CreateSystemAdmin(db)
-		token, err := components.JWTService.GenerateAccessToken(systemAdmin.UUID, systemAdmin.Email, "0")
+		systemAdmin := testUsers["admin@system.test"]
+		require.NotNil(t, systemAdmin, "系统管理员用户应该存在")
+		
+		token, err := GenerateTestJWT(components, systemAdmin.UUID, "0")
 		require.NoError(t, err)
 
 		// 测试系统管理员获取权限树
 		req := httptest.NewRequest("GET", "/api/v1/permissions/tree", nil)
-		req.Header.Set("Authorization", "Bearer "+token)
+		
+		// 使用认证辅助方法设置Header
+		authHeaders := CreateAuthHeader(token)
+		for key, values := range authHeaders {
+			for _, value := range values {
+				req.Header.Add(key, value)
+			}
+		}
 
 		ctx := context.WithValue(req.Context(), "user_id", systemAdmin.UUID)
 		ctx = context.WithValue(ctx, "tenant_id", "0")
@@ -184,13 +209,22 @@ func TestPermissionSystemIntegration(t *testing.T) {
 
 	t.Run("Test Permission Filtering by Module", func(t *testing.T) {
 		// 测试按模块过滤权限
-		systemAdmin := CreateSystemAdmin(db)
-		token, err := components.JWTService.GenerateAccessToken(systemAdmin.UUID, systemAdmin.Email, "0")
+		systemAdmin := testUsers["admin@system.test"]
+		require.NotNil(t, systemAdmin, "系统管理员用户应该存在")
+		
+		token, err := GenerateTestJWT(components, systemAdmin.UUID, "0")
 		require.NoError(t, err)
 
 		// 测试按type过滤
 		req := httptest.NewRequest("GET", "/api/v1/permissions?type=api", nil)
-		req.Header.Set("Authorization", "Bearer "+token)
+		
+		// 使用认证辅助方法设置Header
+		authHeaders := CreateAuthHeader(token)
+		for key, values := range authHeaders {
+			for _, value := range values {
+				req.Header.Add(key, value)
+			}
+		}
 
 		ctx := context.WithValue(req.Context(), "user_id", systemAdmin.UUID)
 		ctx = context.WithValue(ctx, "tenant_id", "0")
@@ -236,8 +270,8 @@ func TestPermissionServiceUnitTests(t *testing.T) {
 	}
 	defer cleanup()
 
-	// 种子测试数据
-	SeedTestData(db)
+	// 设置标准测试用户
+	testUsers := SetupStandardTestUsers(db)
 
 	// 创建测试组件
 	testLogger, err := NewTestLogger()
@@ -248,17 +282,18 @@ func TestPermissionServiceUnitTests(t *testing.T) {
 	t.Run("Test IsSystemAdmin Method", func(t *testing.T) {
 		ctx := context.Background()
 
-		// 创建系统管理员
-		systemAdmin := CreateSystemAdmin(db)
+		// 获取系统管理员用户
+		systemAdmin := testUsers["admin@system.test"]
+		require.NotNil(t, systemAdmin, "系统管理员用户应该存在")
 
 		// 测试系统管理员检查
 		isSystemAdmin, err := components.PermissionService.IsSystemAdmin(ctx, systemAdmin.UUID)
 		require.NoError(t, err)
 		assert.True(t, isSystemAdmin, "系统管理员应该返回true")
 
-		// 创建普通租户用户
-		tenant := CreateTestTenant(db)
-		tenantUser := CreateTestUser(db, tenant.ID, "normal.user@test.com")
+		// 获取普通租户用户
+		tenantUser := testUsers["user@tenant.test"]
+		require.NotNil(t, tenantUser, "租户用户应该存在")
 
 		// 测试普通用户检查
 		isSystemAdmin, err = components.PermissionService.IsSystemAdmin(ctx, tenantUser.UUID)
@@ -269,27 +304,23 @@ func TestPermissionServiceUnitTests(t *testing.T) {
 	t.Run("Test IsTenantAdmin Method", func(t *testing.T) {
 		ctx := context.Background()
 
-		// 创建租户和用户
-		tenant := CreateTestTenant(db)
-		tenantUser := CreateTestUser(db, tenant.ID, "tenant.admin@test.com")
-
-		// 创建租户管理员角色
-		tenantAdminRole := CreateTestRole(db, tenant.ID, "tenant_admin", "租户管理员")
-
-		// 分配角色给用户
-		db.Create(&map[string]interface{}{
-			"user_id":    tenantUser.ID,
-			"role_id":    tenantAdminRole.ID,
-			"tenant_id":  tenant.ID,
-			"granted_by": tenantUser.ID,
-			"is_active":  true,
-		})
+		// 获取租户管理员用户
+		tenantAdmin := testUsers["admin@tenant.test"]
+		require.NotNil(t, tenantAdmin, "租户管理员用户应该存在")
 
 		// 测试租户管理员检查
-		isTenantAdmin, err := components.PermissionService.IsTenantAdmin(ctx, tenantUser.UUID, string(rune(tenant.ID)))
+		isTenantAdmin, err := components.PermissionService.IsTenantAdmin(ctx, tenantAdmin.UUID, "1")
 		require.NoError(t, err)
 		// 注意：这里可能返回false，因为实际的角色检查逻辑可能需要更多设置
 		t.Logf("租户管理员检查结果: %v", isTenantAdmin)
+
+		// 测试普通用户（应该返回false）
+		regularUser := testUsers["user@tenant.test"]
+		require.NotNil(t, regularUser, "普通用户应该存在")
+
+		isTenantAdmin, err = components.PermissionService.IsTenantAdmin(ctx, regularUser.UUID, "1")
+		require.NoError(t, err)
+		assert.False(t, isTenantAdmin, "普通用户不应该是租户管理员")
 	})
 
 	t.Run("Test Permission Auto-Filtering Logic", func(t *testing.T) {
@@ -307,7 +338,8 @@ func TestPermissionServiceUnitTests(t *testing.T) {
 		t.Logf("无用户上下文时权限数量: %d", originalCount)
 
 		// 设置系统管理员上下文
-		systemAdmin := CreateSystemAdmin(db)
+		systemAdmin := testUsers["admin@system.test"]
+		require.NotNil(t, systemAdmin, "系统管理员用户应该存在")
 		ctxWithSystemAdmin := context.WithValue(ctx, "user_id", systemAdmin.UUID)
 
 		_, total, err = components.PermissionService.ListPermissions(ctxWithSystemAdmin, filter, 1, 100)
@@ -317,8 +349,8 @@ func TestPermissionServiceUnitTests(t *testing.T) {
 		t.Logf("系统管理员看到的权限数量: %d", systemAdminCount)
 
 		// 设置普通用户上下文
-		tenant := CreateTestTenant(db)
-		tenantUser := CreateTestUser(db, tenant.ID, "normal@test.com")
+		tenantUser := testUsers["user@tenant.test"]
+		require.NotNil(t, tenantUser, "租户用户应该存在")
 		ctxWithTenantUser := context.WithValue(ctx, "user_id", tenantUser.UUID)
 
 		_, total, err = components.PermissionService.ListPermissions(ctxWithTenantUser, filter, 1, 100)

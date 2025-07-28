@@ -264,10 +264,10 @@ func (h *FieldPermissionHandler) UpdateRoleFieldPermissions(c *gin.Context) {
 		zap.Int("permission_count", len(permissions)))
 
 	h.responseWriter.Success(c, dto.UpdateFieldPermissionsResponse{
-		Message:           "字段权限更新成功",
-		RoleID:            roleID,
-		TableName:         tableName,
-		PermissionCount:   len(permissions),
+		Message:         "字段权限更新成功",
+		RoleID:          roleID,
+		TableName:       tableName,
+		PermissionCount: len(permissions),
 	})
 }
 
@@ -325,7 +325,7 @@ func (h *FieldPermissionHandler) GetUserFieldPermissions(c *gin.Context) {
 		return
 	}
 
-	// 转换为interface{}数组  
+	// 转换为interface{}数组
 	interfacePermissions := make([]interface{}, 0, len(permissions))
 	for k, v := range permissions {
 		interfacePermissions = append(interfacePermissions, map[string]interface{}{
@@ -393,4 +393,4 @@ func (h *FieldPermissionHandler) InitializeTableFields(c *gin.Context) {
 		TableName:  tableName,
 		FieldCount: len(req.Fields),
 	})
-} 
+}

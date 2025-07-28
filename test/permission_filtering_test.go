@@ -20,6 +20,9 @@ func TestPermissionFilteringUnit(t *testing.T) {
 	}
 	defer cleanup()
 
+	// 设置标准测试用户
+	testUsers := SetupStandardTestUsers(db)
+
 	// 创建测试组件
 	testLogger, err := NewTestLogger()
 	require.NoError(t, err)
@@ -32,10 +35,11 @@ func TestPermissionFilteringUnit(t *testing.T) {
 	t.Run("Test Permission Service Auto Filtering", func(t *testing.T) {
 		ctx := context.Background()
 
-		// 创建系统管理员和租户用户
-		systemAdmin := CreateSystemAdmin(db)
-		tenant := CreateTestTenant(db)
-		tenantUser := CreateTestUser(db, tenant.ID, "tenant@test.com")
+		// 获取标准测试用户
+		systemAdmin := testUsers["admin@system.test"]
+		require.NotNil(t, systemAdmin, "系统管理员用户应该存在")
+		tenantUser := testUsers["user@tenant.test"]
+		require.NotNil(t, tenantUser, "租户用户应该存在")
 
 		// 测试1: 无用户上下文 - 应该返回所有权限
 		filter := make(map[string]interface{})
@@ -104,10 +108,11 @@ func TestPermissionFilteringUnit(t *testing.T) {
 	t.Run("Test Permission Tree Auto Filtering", func(t *testing.T) {
 		ctx := context.Background()
 
-		// 创建用户
-		systemAdmin := CreateSystemAdmin(db)
-		tenant := CreateTestTenant(db)
-		tenantUser := CreateTestUser(db, tenant.ID, "tenant@test.com")
+		// 获取标准测试用户
+		systemAdmin := testUsers["admin@system.test"]
+		require.NotNil(t, systemAdmin, "系统管理员用户应该存在")
+		tenantUser := testUsers["user@tenant.test"]
+		require.NotNil(t, tenantUser, "租户用户应该存在")
 
 		// 测试系统管理员的权限树
 		ctxWithSystemAdmin := context.WithValue(ctx, "user_id", systemAdmin.UUID)
@@ -125,10 +130,11 @@ func TestPermissionFilteringUnit(t *testing.T) {
 	t.Run("Test IsSystemAdmin Logic", func(t *testing.T) {
 		ctx := context.Background()
 
-		// 创建用户
-		systemAdmin := CreateSystemAdmin(db)
-		tenant := CreateTestTenant(db)
-		tenantUser := CreateTestUser(db, tenant.ID, "tenant@test.com")
+		// 获取标准测试用户
+		systemAdmin := testUsers["admin@system.test"]
+		require.NotNil(t, systemAdmin, "系统管理员用户应该存在")
+		tenantUser := testUsers["user@tenant.test"]
+		require.NotNil(t, tenantUser, "租户用户应该存在")
 
 		// 测试系统管理员检查
 		isSystemAdmin, err := components.PermissionService.IsSystemAdmin(ctx, systemAdmin.UUID)

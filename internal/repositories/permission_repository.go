@@ -5,6 +5,7 @@ package repositories
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/varluffy/shield/internal/models"
 	"github.com/varluffy/shield/pkg/logger"
@@ -47,6 +48,8 @@ type PermissionRepository interface {
 	GetPermissionsByParent(ctx context.Context, parentCode string) ([]models.Permission, error)
 	// GetRootPermissions 获取根权限列表（没有父权限的权限）
 	GetRootPermissions(ctx context.Context, scope string) ([]models.Permission, error)
+	// GetPermissionsByPathAndMethod 根据路径和方法获取权限列表
+	GetPermissionsByPathAndMethod(ctx context.Context, path, method string) ([]models.Permission, error)
 }
 
 // permissionRepository 权限仓储实现
@@ -443,11 +446,11 @@ func (r *permissionRepository) GetRootPermissions(ctx context.Context, scope str
 
 	db := r.GetDB(ctx)
 	query := db.Where("(parent_code = '' OR parent_code IS NULL) AND is_active = ?", true)
-	
+
 	if scope != "" {
 		query = query.Where("scope = ?", scope)
 	}
-	
+
 	err := query.Order("sort_order ASC, id ASC").Find(&permissions).Error
 	if err != nil {
 		r.logger.ErrorWithTrace(ctx, "Failed to get root permissions",
@@ -461,4 +464,102 @@ func (r *permissionRepository) GetRootPermissions(ctx context.Context, scope str
 		zap.Int("permission_count", len(permissions)))
 
 	return permissions, nil
-} 
+}
+
+// GetPermissionsByPathAndMethod 根据路径和方法获取权限列表
+func (r *permissionRepository) GetPermissionsByPathAndMethod(ctx context.Context, path, method string) ([]models.Permission, error) {
+	var permissions []models.Permission
+
+	r.logger.DebugWithTrace(ctx, "Getting permissions by path and method",
+		zap.String("path", path),
+		zap.String("method", method))
+
+	db := r.GetDB(ctx)
+
+	// 查询所有API类型的活跃权限，这些权限有resource_path和method配置
+	err := db.WithContext(ctx).Where(
+		"type = ? AND is_active = ? AND resource_path != '' AND method != ''",
+		"api", true,
+	).Find(&permissions).Error
+
+	if err != nil {
+		r.logger.ErrorWithTrace(ctx, "Failed to get permissions by path and method",
+			zap.Error(err),
+			zap.String("path", path),
+			zap.String("method", method))
+		return nil, fmt.Errorf("failed to get permissions: %w", err)
+	}
+
+	// 过滤匹配的权限
+	var matchedPermissions []models.Permission
+	for _, permission := range permissions {
+		// 检查HTTP方法是否匹配
+		if permission.Method != method {
+			continue
+		}
+
+		// 检查路径是否匹配
+		if r.pathMatches(path, permission.ResourcePath) {
+			matchedPermissions = append(matchedPermissions, permission)
+		}
+	}
+
+	r.logger.DebugWithTrace(ctx, "Retrieved matched permissions",
+		zap.String("path", path),
+		zap.String("method", method),
+		zap.Int("total_permissions", len(permissions)),
+		zap.Int("matched_permissions", len(matchedPermissions)))
+
+	return matchedPermissions, nil
+}
+
+// pathMatches 检查请求路径是否匹配权限路径模式
+func (r *permissionRepository) pathMatches(requestPath, permissionPath string) bool {
+	// 精确匹配
+	if requestPath == permissionPath {
+		return true
+	}
+
+	// 移除首尾斜杠进行标准化
+	requestParts := r.splitPath(requestPath)
+	permissionParts := r.splitPath(permissionPath)
+
+	// 检查路径段数量
+	if len(requestParts) != len(permissionParts) {
+		return false
+	}
+
+	// 逐段比较
+	for i, permissionPart := range permissionParts {
+		if i >= len(requestParts) {
+			return false
+		}
+
+		// 跳过参数占位符（:id, :uuid等）
+		if len(permissionPart) > 0 && permissionPart[0] == ':' {
+			continue
+		}
+
+		// 精确匹配段
+		if requestParts[i] != permissionPart {
+			return false
+		}
+	}
+
+	return true
+}
+
+// splitPath 分割路径为段
+func (r *permissionRepository) splitPath(path string) []string {
+	if path == "" || path == "/" {
+		return []string{}
+	}
+
+	// 移除首尾斜杠并分割
+	path = strings.Trim(path, "/")
+	if path == "" {
+		return []string{}
+	}
+
+	return strings.Split(path, "/")
+}

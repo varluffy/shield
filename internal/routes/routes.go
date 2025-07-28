@@ -83,29 +83,29 @@ func SetupRoutes(
 		users := api.Group("/users")
 		users.Use(authMiddleware.RequireAuth()) // 要求认证
 		{
-			users.GET("", authMiddleware.RequirePermission("user_list_api"), userHandler.ListUsers)                   // 需要用户列表查看权限
-			users.GET("/:uuid", authMiddleware.RequireOwnerOrPermission("uuid", "user_list_api"), userHandler.GetUser) // 用户查看自己信息或拥有用户查看权限
-			users.PUT("/:uuid", authMiddleware.RequireOwnerOrPermission("uuid", "user_update_api"), userHandler.UpdateUser) // 用户更新自己信息或拥有用户更新权限
-			users.DELETE("/:uuid", authMiddleware.RequirePermission("user_delete_api"), userHandler.DeleteUser)       // 需要用户删除权限
+			users.GET("", authMiddleware.ValidateAPIPermission(), userHandler.ListUsers)
+			users.GET("/:uuid", authMiddleware.ValidateAPIPermission(), userHandler.GetUser)
+			users.PUT("/:uuid", authMiddleware.ValidateAPIPermission(), userHandler.UpdateUser)
+			users.DELETE("/:uuid", authMiddleware.ValidateAPIPermission(), userHandler.DeleteUser)
 		}
 
 		// 管理员路由 (需要特定权限)
 		admin := api.Group("/admin")
 		admin.Use(authMiddleware.RequireAuth()) // 要求认证
 		{
-			admin.POST("/users", authMiddleware.RequirePermission("user_create_api"), userHandler.CreateUser) // 需要用户创建权限
+			admin.POST("/users", authMiddleware.ValidateAPIPermission(), userHandler.CreateUser)
 		}
 
 		// 角色管理路由
 		roles := api.Group("/roles")
 		roles.Use(authMiddleware.RequireAuth()) // 要求认证
 		{
-			roles.GET("", authMiddleware.RequirePermission("role_list_api"), roleHandler.ListRoles)
-			roles.POST("", authMiddleware.RequirePermission("role_create_api"), roleHandler.CreateRole)
-			roles.PUT("/:id", authMiddleware.RequirePermission("role_update_api"), roleHandler.UpdateRole)
-			roles.DELETE("/:id", authMiddleware.RequirePermission("role_delete_api"), roleHandler.DeleteRole)
-			roles.POST("/:id/permissions", authMiddleware.RequirePermission("role_assign_api"), roleHandler.AssignPermissions)
-			roles.GET("/:id/permissions", authMiddleware.RequirePermission("role_list_api"), roleHandler.GetRolePermissions)
+			roles.GET("", authMiddleware.ValidateAPIPermission(), roleHandler.ListRoles)
+			roles.POST("", authMiddleware.ValidateAPIPermission(), roleHandler.CreateRole)
+			roles.PUT("/:id", authMiddleware.ValidateAPIPermission(), roleHandler.UpdateRole)
+			roles.DELETE("/:id", authMiddleware.ValidateAPIPermission(), roleHandler.DeleteRole)
+			roles.POST("/:id/permissions", authMiddleware.ValidateAPIPermission(), roleHandler.AssignPermissions)
+			roles.GET("/:id/permissions", authMiddleware.ValidateAPIPermission(), roleHandler.GetRolePermissions)
 		}
 
 		// 权限管理路由（统一接口，自动根据用户身份过滤）
@@ -115,34 +115,34 @@ func SetupRoutes(
 			// 统一的权限查询接口：
 			// - 系统管理员：返回所有权限
 			// - 租户管理员：只返回租户权限
-			permissions.GET("", authMiddleware.RequirePermission("permission_list_api"), permissionHandler.ListPermissions)
-			permissions.GET("/tree", authMiddleware.RequirePermission("permission_list_api"), permissionHandler.GetPermissionTree)
+			permissions.GET("", authMiddleware.ValidateAPIPermission(), permissionHandler.ListPermissions)
+			permissions.GET("/tree", authMiddleware.ValidateAPIPermission(), permissionHandler.GetPermissionTree)
 		}
 
-		// 字段权限管理路由  
+		// 字段权限管理路由
 		fieldPermissions := api.Group("/field-permissions")
 		fieldPermissions.Use(authMiddleware.RequireAuth()) // 要求认证
 		{
-			fieldPermissions.GET("/tables/:tableName/fields", authMiddleware.RequirePermission("field_permission_list_api"), fieldPermissionHandler.GetTableFields)
-			fieldPermissions.GET("/roles/:roleId/:tableName", authMiddleware.RequirePermission("field_permission_list_api"), fieldPermissionHandler.GetRoleFieldPermissions)
-			fieldPermissions.PUT("/roles/:roleId/:tableName", authMiddleware.RequirePermission("field_permission_update_api"), fieldPermissionHandler.UpdateRoleFieldPermissions)
+			fieldPermissions.GET("/tables/:tableName/fields", authMiddleware.ValidateAPIPermission(), fieldPermissionHandler.GetTableFields)
+			fieldPermissions.GET("/roles/:roleId/:tableName", authMiddleware.ValidateAPIPermission(), fieldPermissionHandler.GetRoleFieldPermissions)
+			fieldPermissions.PUT("/roles/:roleId/:tableName", authMiddleware.ValidateAPIPermission(), fieldPermissionHandler.UpdateRoleFieldPermissions)
 		}
 
 		// 用户权限查询路由
 		userPermissions := api.Group("/user")
 		userPermissions.Use(authMiddleware.RequireAuth()) // 要求认证
 		{
-			userPermissions.GET("/permissions", userHandler.GetUserPermissions)       // 获取当前用户权限列表
-			userPermissions.GET("/permissions/menu", userHandler.GetUserMenuPermissions) // 获取当前用户菜单权限
+			userPermissions.GET("/permissions", userHandler.GetUserPermissions)                       // 获取当前用户权限列表
+			userPermissions.GET("/permissions/menu", userHandler.GetUserMenuPermissions)              // 获取当前用户菜单权限
 			userPermissions.GET("/field-permissions/:tableName", userHandler.GetUserFieldPermissions) // 获取当前用户字段权限
 		}
 
 		// 系统管理路由 (只有系统管理员可以访问)
 		system := api.Group("/system")
-		system.Use(authMiddleware.RequireAuth(), authMiddleware.RequireSystemAdmin()) // 要求认证且为系统管理员
+		system.Use(authMiddleware.RequireAuth()) // 要求认证
 		{
-			system.GET("/permissions", permissionHandler.ListSystemPermissions) // 获取系统权限列表
-			system.PUT("/permissions/:id", permissionHandler.UpdatePermission)  // 更新权限
+			system.GET("/permissions", authMiddleware.ValidateAPIPermission(), permissionHandler.ListSystemPermissions) // 获取系统权限列表
+			system.PUT("/permissions/:id", authMiddleware.ValidateAPIPermission(), permissionHandler.UpdatePermission)  // 更新权限
 		}
 
 		// 黑名单查询API (HMAC鉴权)
@@ -156,12 +156,12 @@ func SetupRoutes(
 		adminBlacklist := api.Group("/admin/blacklist")
 		adminBlacklist.Use(authMiddleware.RequireAuth()) // 要求认证
 		{
-			adminBlacklist.POST("", authMiddleware.RequirePermission("blacklist_create_api"), blacklistHandler.CreateBlacklist)
-			adminBlacklist.POST("/import", authMiddleware.RequirePermission("blacklist_import_api"), blacklistHandler.BatchImportBlacklist)
-			adminBlacklist.GET("", authMiddleware.RequirePermission("blacklist_list_api"), blacklistHandler.GetBlacklistList)
-			adminBlacklist.DELETE("/:id", authMiddleware.RequirePermission("blacklist_delete_api"), blacklistHandler.DeleteBlacklist)
-			adminBlacklist.GET("/stats", authMiddleware.RequirePermission("blacklist_stats_api"), blacklistHandler.GetQueryStats)
-			adminBlacklist.GET("/stats/minutes", authMiddleware.RequirePermission("blacklist_stats_api"), blacklistHandler.GetMinuteStats)
+			adminBlacklist.POST("", authMiddleware.ValidateAPIPermission(), blacklistHandler.CreateBlacklist)
+			adminBlacklist.POST("/import", authMiddleware.ValidateAPIPermission(), blacklistHandler.BatchImportBlacklist)
+			adminBlacklist.GET("", authMiddleware.ValidateAPIPermission(), blacklistHandler.GetBlacklistList)
+			adminBlacklist.DELETE("/:id", authMiddleware.ValidateAPIPermission(), blacklistHandler.DeleteBlacklist)
+			adminBlacklist.GET("/stats", authMiddleware.ValidateAPIPermission(), blacklistHandler.GetQueryStats)
+			adminBlacklist.GET("/stats/minutes", authMiddleware.ValidateAPIPermission(), blacklistHandler.GetMinuteStats)
 		}
 	}
 

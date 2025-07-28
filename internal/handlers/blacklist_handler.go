@@ -96,10 +96,10 @@ func (h *BlacklistHandler) CheckBlacklist(c *gin.Context) {
 
 	// 设置结果供日志中间件使用
 	c.Set("blacklist_result", isBlacklist)
-	
+
 	// 计算响应时间
 	latencyMs := time.Since(start).Milliseconds()
-	
+
 	// 更新查询统计（异步执行，不影响响应）
 	go func() {
 		apiKey := c.GetString("api_key")
@@ -434,7 +434,7 @@ func (h *BlacklistHandler) GetQueryStats(c *gin.Context) {
 // @Router /api/v1/admin/blacklist/stats/minutes [get]
 func (h *BlacklistHandler) GetMinuteStats(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	// 参数验证
 	var req dto.MinuteStatsRequest
 	if err := c.ShouldBindQuery(&req); err != nil {
@@ -443,10 +443,10 @@ func (h *BlacklistHandler) GetMinuteStats(c *gin.Context) {
 		h.responseWriter.Error(c, errors.ErrValidationFailed("参数验证失败"))
 		return
 	}
-	
+
 	// 获取租户ID
 	tenantID := c.GetUint64("tenant_id")
-	
+
 	// 获取分钟级统计
 	stats, err := h.blacklistService.GetMinuteStats(ctx, tenantID, req.Minutes)
 	if err != nil {
@@ -457,7 +457,7 @@ func (h *BlacklistHandler) GetMinuteStats(c *gin.Context) {
 		h.responseWriter.Error(c, errors.ErrInternalError("获取统计失败"))
 		return
 	}
-	
+
 	// 转换响应
 	resp := dto.MinuteStatsResponse{
 		Timestamp:    stats.Timestamp,
@@ -469,7 +469,7 @@ func (h *BlacklistHandler) GetMinuteStats(c *gin.Context) {
 		AvgLatency:   stats.AvgLatency,
 		MinuteData:   make([]dto.MinutePoint, len(stats.MinuteData)),
 	}
-	
+
 	// 转换分钟数据
 	for i, point := range stats.MinuteData {
 		resp.MinuteData[i] = dto.MinutePoint{
@@ -480,11 +480,11 @@ func (h *BlacklistHandler) GetMinuteStats(c *gin.Context) {
 			AvgLatency:   point.AvgLatency,
 		}
 	}
-	
+
 	h.logger.InfoWithTrace(ctx, "获取分钟级统计成功",
 		zap.Uint64("tenant_id", tenantID),
 		zap.Int("minutes", req.Minutes),
 		zap.Int64("total_queries", stats.TotalQueries))
-	
+
 	h.responseWriter.Success(c, resp)
 }

@@ -12,7 +12,7 @@ import (
 var ProviderSet = wire.NewSet(
 	// 认证中间件
 	NewAuthMiddleware,
-	
+
 	// 黑名单认证中间件
 	NewBlacklistAuthMiddlewareProvider,
 	NewBlacklistLogMiddlewareProvider,
@@ -54,4 +54,4 @@ func NewBlacklistLogMiddlewareProvider(
 		logger:      logger,
 		sampleRate:  0.01, // 1%采样率
 	}
-} 
+}

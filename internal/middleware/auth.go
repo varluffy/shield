@@ -84,8 +84,8 @@ func (m *AuthMiddleware) RequireAuth() gin.HandlerFunc {
 	}
 }
 
-// RequirePermission 要求特定权限
-func (m *AuthMiddleware) RequirePermission(permissionCode string) gin.HandlerFunc {
+// ValidateAPIPermission 基于API路径和HTTP方法动态验证权限
+func (m *AuthMiddleware) ValidateAPIPermission() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
 
@@ -122,304 +122,57 @@ func (m *AuthMiddleware) RequirePermission(permissionCode string) gin.HandlerFun
 			return
 		}
 
-		// 检查权限
-		hasPermission, err := m.permissionService.CheckUserPermission(ctx, userIDStr, tenantIDStr, permissionCode)
+		// 检查是否为系统租户用户（tenant_id = 0）
+		// 系统租户拥有所有权限，直接放行
+		if tenantIDStr == "0" {
+			m.logger.DebugWithTrace(ctx, "System tenant user granted all permissions",
+				zap.String("user_id", userIDStr),
+				zap.String("tenant_id", tenantIDStr))
+			c.Next()
+			return
+		}
+
+		// 获取请求路径和方法
+		path := c.Request.URL.Path
+		method := c.Request.Method
+
+		// 标准化路径（移除版本前缀）
+		path = strings.TrimPrefix(path, "/api/v1")
+
+		// 检查用户是否有访问该API的权限
+		hasPermission, err := m.permissionService.CheckUserAPIPermission(ctx, userIDStr, tenantIDStr, path, method)
 		if err != nil {
-			m.logger.ErrorWithTrace(ctx, "Failed to check user permission",
+			m.logger.ErrorWithTrace(ctx, "Failed to check API permission",
 				zap.Error(err),
 				zap.String("user_id", userIDStr),
 				zap.String("tenant_id", tenantIDStr),
-				zap.String("permission_code", permissionCode))
+				zap.String("path", path),
+				zap.String("method", method))
 			m.responseWriter.Error(c, errors.ErrInternalError("permission check failed"))
 			c.Abort()
 			return
 		}
 
 		if !hasPermission {
-			m.logger.WarnWithTrace(ctx, "Insufficient permissions",
+			m.logger.WarnWithTrace(ctx, "Insufficient API permissions",
 				zap.String("user_id", userIDStr),
 				zap.String("tenant_id", tenantIDStr),
-				zap.String("permission_code", permissionCode))
+				zap.String("path", path),
+				zap.String("method", method))
 			m.responseWriter.Error(c, errors.ErrUserPermissionError())
 			c.Abort()
 			return
 		}
 
-		m.logger.DebugWithTrace(ctx, "Permission granted",
+		m.logger.DebugWithTrace(ctx, "API permission granted",
 			zap.String("user_id", userIDStr),
-			zap.String("permission_code", permissionCode))
+			zap.String("path", path),
+			zap.String("method", method))
 
 		c.Next()
 	}
 }
 
-// RequireRole 要求特定角色
-func (m *AuthMiddleware) RequireRole(roleCode string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		ctx := c.Request.Context()
-
-		// 检查是否已认证
-		userID, exists := c.Get("user_id")
-		if !exists {
-			m.logger.WarnWithTrace(ctx, "User ID not found in context")
-			m.responseWriter.Error(c, errors.ErrUnauthorized())
-			c.Abort()
-			return
-		}
-
-		tenantID, exists := c.Get("tenant_id")
-		if !exists {
-			m.logger.WarnWithTrace(ctx, "Tenant ID not found in context")
-			m.responseWriter.Error(c, errors.ErrUnauthorized())
-			c.Abort()
-			return
-		}
-
-		userIDStr, ok := userID.(string)
-		if !ok {
-			m.logger.WarnWithTrace(ctx, "Invalid user ID type")
-			m.responseWriter.Error(c, errors.ErrForbidden())
-			c.Abort()
-			return
-		}
-
-		tenantIDStr, ok := tenantID.(string)
-		if !ok {
-			m.logger.WarnWithTrace(ctx, "Invalid tenant ID type")
-			m.responseWriter.Error(c, errors.ErrForbidden())
-			c.Abort()
-			return
-		}
-
-		// 检查角色
-		hasRole, err := m.permissionService.HasRole(ctx, userIDStr, tenantIDStr, roleCode)
-		if err != nil {
-			m.logger.ErrorWithTrace(ctx, "Failed to check user role",
-				zap.Error(err),
-				zap.String("user_id", userIDStr),
-				zap.String("tenant_id", tenantIDStr),
-				zap.String("role_code", roleCode))
-			m.responseWriter.Error(c, errors.ErrInternalError("role check failed"))
-			c.Abort()
-			return
-		}
-
-		if !hasRole {
-			m.logger.WarnWithTrace(ctx, "Insufficient role permissions",
-				zap.String("user_id", userIDStr),
-				zap.String("tenant_id", tenantIDStr),
-				zap.String("role_code", roleCode))
-			m.responseWriter.Error(c, errors.ErrUserPermissionError())
-			c.Abort()
-			return
-		}
-
-		m.logger.DebugWithTrace(ctx, "Role permission granted",
-			zap.String("user_id", userIDStr),
-			zap.String("role_code", roleCode))
-
-		c.Next()
-	}
-}
-
-// RequireSystemAdmin 要求系统管理员权限
-func (m *AuthMiddleware) RequireSystemAdmin() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		ctx := c.Request.Context()
-
-		// 检查是否已认证
-		userID, exists := c.Get("user_id")
-		if !exists {
-			m.logger.WarnWithTrace(ctx, "User ID not found in context")
-			m.responseWriter.Error(c, errors.ErrUnauthorized())
-			c.Abort()
-			return
-		}
-
-		userIDStr, ok := userID.(string)
-		if !ok {
-			m.logger.WarnWithTrace(ctx, "Invalid user ID type")
-			m.responseWriter.Error(c, errors.ErrForbidden())
-			c.Abort()
-			return
-		}
-
-		// 检查是否为系统管理员
-		isSystemAdmin, err := m.permissionService.IsSystemAdmin(ctx, userIDStr)
-		if err != nil {
-			m.logger.ErrorWithTrace(ctx, "Failed to check system admin status",
-				zap.Error(err),
-				zap.String("user_id", userIDStr))
-			m.responseWriter.Error(c, errors.ErrInternalError("system admin check failed"))
-			c.Abort()
-			return
-		}
-
-		if !isSystemAdmin {
-			m.logger.WarnWithTrace(ctx, "System admin permission required",
-				zap.String("user_id", userIDStr))
-			m.responseWriter.Error(c, errors.ErrUserPermissionError())
-			c.Abort()
-			return
-		}
-
-		m.logger.DebugWithTrace(ctx, "System admin permission granted",
-			zap.String("user_id", userIDStr))
-
-		c.Next()
-	}
-}
-
-// RequireTenantAdmin 要求租户管理员权限
-func (m *AuthMiddleware) RequireTenantAdmin() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		ctx := c.Request.Context()
-
-		// 检查是否已认证
-		userID, exists := c.Get("user_id")
-		if !exists {
-			m.logger.WarnWithTrace(ctx, "User ID not found in context")
-			m.responseWriter.Error(c, errors.ErrUnauthorized())
-			c.Abort()
-			return
-		}
-
-		tenantID, exists := c.Get("tenant_id")
-		if !exists {
-			m.logger.WarnWithTrace(ctx, "Tenant ID not found in context")
-			m.responseWriter.Error(c, errors.ErrUnauthorized())
-			c.Abort()
-			return
-		}
-
-		userIDStr, ok := userID.(string)
-		if !ok {
-			m.logger.WarnWithTrace(ctx, "Invalid user ID type")
-			m.responseWriter.Error(c, errors.ErrForbidden())
-			c.Abort()
-			return
-		}
-
-		tenantIDStr, ok := tenantID.(string)
-		if !ok {
-			m.logger.WarnWithTrace(ctx, "Invalid tenant ID type")
-			m.responseWriter.Error(c, errors.ErrForbidden())
-			c.Abort()
-			return
-		}
-
-		// 检查是否为租户管理员
-		isTenantAdmin, err := m.permissionService.IsTenantAdmin(ctx, userIDStr, tenantIDStr)
-		if err != nil {
-			m.logger.ErrorWithTrace(ctx, "Failed to check tenant admin status",
-				zap.Error(err),
-				zap.String("user_id", userIDStr),
-				zap.String("tenant_id", tenantIDStr))
-			m.responseWriter.Error(c, errors.ErrInternalError("tenant admin check failed"))
-			c.Abort()
-			return
-		}
-
-		if !isTenantAdmin {
-			m.logger.WarnWithTrace(ctx, "Tenant admin permission required",
-				zap.String("user_id", userIDStr),
-				zap.String("tenant_id", tenantIDStr))
-			m.responseWriter.Error(c, errors.ErrUserPermissionError())
-			c.Abort()
-			return
-		}
-
-		m.logger.DebugWithTrace(ctx, "Tenant admin permission granted",
-			zap.String("user_id", userIDStr),
-			zap.String("tenant_id", tenantIDStr))
-
-		c.Next()
-	}
-}
-
-// RequireOwnerOrAdmin 要求资源所有者或管理员权限
-func (m *AuthMiddleware) RequireOwnerOrAdmin(resourceUserIDParam string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		ctx := c.Request.Context()
-
-		// 获取当前用户ID
-		currentUserID, exists := c.Get("user_id")
-		if !exists {
-			m.logger.WarnWithTrace(ctx, "Current user ID not found in context")
-			m.responseWriter.Error(c, errors.ErrUnauthorized())
-			c.Abort()
-			return
-		}
-
-		currentUserIDStr, ok := currentUserID.(string)
-		if !ok {
-			m.logger.WarnWithTrace(ctx, "Invalid current user ID type")
-			m.responseWriter.Error(c, errors.ErrInternalError("invalid user ID"))
-			c.Abort()
-			return
-		}
-
-		// 获取资源用户ID参数
-		resourceUserID := c.Param(resourceUserIDParam)
-		if resourceUserID == "" {
-			m.logger.WarnWithTrace(ctx, "Resource user ID parameter not found",
-				zap.String("param_name", resourceUserIDParam))
-			m.responseWriter.Error(c, errors.ErrInvalidRequest())
-			c.Abort()
-			return
-		}
-
-		// 如果是资源所有者，直接允许
-		if currentUserIDStr == resourceUserID {
-			m.logger.DebugWithTrace(ctx, "Owner permission granted",
-				zap.String("user_id", currentUserIDStr))
-			c.Next()
-			return
-		}
-
-		// 检查是否为管理员
-		tenantID, exists := c.Get("tenant_id")
-		if !exists {
-			m.logger.WarnWithTrace(ctx, "Tenant ID not found in context")
-			m.responseWriter.Error(c, errors.ErrUnauthorized())
-			c.Abort()
-			return
-		}
-
-		tenantIDStr, ok := tenantID.(string)
-		if !ok {
-			m.logger.WarnWithTrace(ctx, "Invalid tenant ID type")
-			m.responseWriter.Error(c, errors.ErrForbidden())
-			c.Abort()
-			return
-		}
-
-		// 检查是否为租户管理员或系统管理员
-		isTenantAdmin, err := m.permissionService.IsTenantAdmin(ctx, currentUserIDStr, tenantIDStr)
-		if err != nil {
-			m.logger.ErrorWithTrace(ctx, "Failed to check admin status",
-				zap.Error(err),
-				zap.String("user_id", currentUserIDStr))
-			m.responseWriter.Error(c, errors.ErrInternalError("admin check failed"))
-			c.Abort()
-			return
-		}
-
-		if !isTenantAdmin {
-			m.logger.WarnWithTrace(ctx, "Access denied: not resource owner or admin",
-				zap.String("current_user_id", currentUserIDStr),
-				zap.String("resource_user_id", resourceUserID))
-			m.responseWriter.Error(c, errors.ErrUserPermissionError())
-			c.Abort()
-			return
-		}
-
-		m.logger.DebugWithTrace(ctx, "Admin permission granted",
-			zap.String("user_id", currentUserIDStr))
-
-		c.Next()
-	}
-}
 
 // OptionalAuth 可选认证中间件
 func (m *AuthMiddleware) OptionalAuth() gin.HandlerFunc {
@@ -514,90 +267,3 @@ func GetCurrentTenantID(c *gin.Context) (string, bool) {
 	return tenantIDStr, ok
 }
 
-// RequireOwnerOrPermission 要求资源所有者或特定权限
-func (m *AuthMiddleware) RequireOwnerOrPermission(resourceUserIDParam string, permissionCode string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		ctx := c.Request.Context()
-
-		// 获取当前用户ID
-		currentUserID, exists := c.Get("user_id")
-		if !exists {
-			m.logger.WarnWithTrace(ctx, "Current user ID not found in context")
-			m.responseWriter.Error(c, errors.ErrUnauthorized())
-			c.Abort()
-			return
-		}
-
-		currentUserIDStr, ok := currentUserID.(string)
-		if !ok {
-			m.logger.WarnWithTrace(ctx, "Invalid current user ID type")
-			m.responseWriter.Error(c, errors.ErrInternalError("invalid user ID"))
-			c.Abort()
-			return
-		}
-
-		// 获取资源用户ID参数
-		resourceUserID := c.Param(resourceUserIDParam)
-		if resourceUserID == "" {
-			m.logger.WarnWithTrace(ctx, "Resource user ID parameter not found",
-				zap.String("param_name", resourceUserIDParam))
-			m.responseWriter.Error(c, errors.ErrInvalidRequest())
-			c.Abort()
-			return
-		}
-
-		// 如果是资源所有者，直接允许
-		if currentUserIDStr == resourceUserID {
-			m.logger.DebugWithTrace(ctx, "Owner permission granted",
-				zap.String("user_id", currentUserIDStr))
-			c.Next()
-			return
-		}
-
-		// 检查是否有特定权限
-		tenantID, exists := c.Get("tenant_id")
-		if !exists {
-			m.logger.WarnWithTrace(ctx, "Tenant ID not found in context")
-			m.responseWriter.Error(c, errors.ErrUnauthorized())
-			c.Abort()
-			return
-		}
-
-		tenantIDStr, ok := tenantID.(string)
-		if !ok {
-			m.logger.WarnWithTrace(ctx, "Invalid tenant ID type")
-			m.responseWriter.Error(c, errors.ErrForbidden())
-			c.Abort()
-			return
-		}
-
-		// 检查权限
-		hasPermission, err := m.permissionService.CheckUserPermission(ctx, currentUserIDStr, tenantIDStr, permissionCode)
-		if err != nil {
-			m.logger.ErrorWithTrace(ctx, "Failed to check user permission",
-				zap.Error(err),
-				zap.String("user_id", currentUserIDStr),
-				zap.String("tenant_id", tenantIDStr),
-				zap.String("permission_code", permissionCode))
-			m.responseWriter.Error(c, errors.ErrInternalError("permission check failed"))
-			c.Abort()
-			return
-		}
-
-		if !hasPermission {
-			m.logger.WarnWithTrace(ctx, "Access denied: not resource owner and insufficient permissions",
-				zap.String("current_user_id", currentUserIDStr),
-				zap.String("resource_user_id", resourceUserID),
-				zap.String("permission_code", permissionCode))
-			m.responseWriter.Error(c, errors.ErrUserPermissionError())
-			c.Abort()
-			return
-		}
-
-		m.logger.DebugWithTrace(ctx, "Permission granted",
-			zap.String("user_id", currentUserIDStr),
-			zap.String("permission_code", permissionCode))
-
-		c.Next()
-	}
-} 

@@ -72,19 +72,19 @@ func (t *Tenant) BeforeCreate(tx *gorm.DB) error {
 // User 用户模型
 type User struct {
 	TenantModel
-	Email                string     `gorm:"type:varchar(255);not null;uniqueIndex:uk_tenant_email" json:"email"`
-	Password             string     `gorm:"type:varchar(255);not null" json:"-"`
-	Name                 string     `gorm:"type:varchar(100)" json:"name"`
-	Avatar               string     `gorm:"type:varchar(500)" json:"avatar"`
-	Phone                string     `gorm:"type:varchar(20)" json:"phone"`
-	Status               string     `gorm:"type:varchar(20);default:'active'" json:"status"` // active, inactive, locked
-	EmailVerifiedAt      *time.Time `json:"email_verified_at"`
-	LastLoginAt          *time.Time `json:"last_login_at"`
-	LoginCount           int        `gorm:"default:0" json:"login_count"`
-	FailedLoginAttempts  int        `gorm:"default:0" json:"failed_login_attempts"`
-	LockedUntil          *time.Time `json:"locked_until"`
-	Timezone             string     `gorm:"type:varchar(50);default:'Asia/Shanghai'" json:"timezone"`
-	Language             string     `gorm:"type:varchar(10);default:'zh'" json:"language"`
+	Email               string     `gorm:"type:varchar(255);not null;uniqueIndex:uk_tenant_email" json:"email"`
+	Password            string     `gorm:"type:varchar(255);not null" json:"-"`
+	Name                string     `gorm:"type:varchar(100)" json:"name"`
+	Avatar              string     `gorm:"type:varchar(500)" json:"avatar"`
+	Phone               string     `gorm:"type:varchar(20)" json:"phone"`
+	Status              string     `gorm:"type:varchar(20);default:'active'" json:"status"` // active, inactive, locked
+	EmailVerifiedAt     *time.Time `json:"email_verified_at"`
+	LastLoginAt         *time.Time `json:"last_login_at"`
+	LoginCount          int        `gorm:"default:0" json:"login_count"`
+	FailedLoginAttempts int        `gorm:"default:0" json:"failed_login_attempts"`
+	LockedUntil         *time.Time `json:"locked_until"`
+	Timezone            string     `gorm:"type:varchar(50);default:'Asia/Shanghai'" json:"timezone"`
+	Language            string     `gorm:"type:varchar(10);default:'zh'" json:"language"`
 }
 
 func (User) TableName() string {
@@ -113,15 +113,21 @@ type Permission struct {
 	Code         string `gorm:"type:varchar(100);not null;uniqueIndex" json:"code"`
 	Name         string `gorm:"type:varchar(100);not null" json:"name"`
 	Description  string `gorm:"type:text" json:"description"`
-	Type         string `gorm:"type:varchar(20);not null" json:"type"`        // menu, button, api
-	Scope        string `gorm:"type:varchar(20);not null" json:"scope"`       // system, tenant
-	ParentCode   string `gorm:"type:varchar(100);index" json:"parent_code"`   // 父权限编码
-	ResourcePath string `gorm:"type:varchar(200)" json:"resource_path"`       // API路径
-	Method       string `gorm:"type:varchar(10)" json:"method"`               // HTTP方法
-	SortOrder    int    `gorm:"default:0" json:"sort_order"`                 // 排序
-	IsBuiltin    bool   `gorm:"default:false" json:"is_builtin"`             // 是否内置
-	IsActive     bool   `gorm:"default:true" json:"is_active"`               // 是否启用
-	Module       string `gorm:"type:varchar(50)" json:"module"`              // 所属模块
+	Type         string `gorm:"type:varchar(20);not null" json:"type"`      // menu, button, api
+	Scope        string `gorm:"type:varchar(20);not null" json:"scope"`     // system, tenant
+	ParentCode   string `gorm:"type:varchar(100);index" json:"parent_code"` // 父权限编码
+	ResourcePath string `gorm:"type:varchar(200)" json:"resource_path"`     // API路径
+	Method       string `gorm:"type:varchar(10)" json:"method"`             // HTTP方法
+	SortOrder    int    `gorm:"default:0" json:"sort_order"`                // 排序
+	IsBuiltin    bool   `gorm:"default:false" json:"is_builtin"`            // 是否内置
+	IsActive     bool   `gorm:"default:true" json:"is_active"`              // 是否启用
+	Module       string `gorm:"type:varchar(50)" json:"module"`             // 所属模块
+	
+	// 菜单专用字段
+	MenuIcon      string `gorm:"type:varchar(100)" json:"menu_icon"`       // 菜单图标
+	MenuPath      string `gorm:"type:varchar(200)" json:"menu_path"`       // 菜单路径
+	MenuComponent string `gorm:"type:varchar(200)" json:"menu_component"`  // 前端组件路径
+	MenuVisible   bool   `gorm:"default:true" json:"menu_visible"`         // 菜单是否可见
 }
 
 func (Permission) TableName() string {
@@ -214,13 +220,13 @@ func (RefreshToken) TableName() string {
 // LoginAttempt 登录尝试记录模型（不需要UUID）
 type LoginAttempt struct {
 	BaseModelWithoutUUID
-	UserID        uint64    `gorm:"index" json:"user_id"`
-	TenantID      uint64    `gorm:"index" json:"tenant_id"`
-	Email         string    `gorm:"type:varchar(255);index" json:"email"`
-	IPAddress     string    `gorm:"type:varchar(45)" json:"ip_address"`
-	UserAgent     string    `gorm:"type:text" json:"user_agent"`
-	Success       bool      `gorm:"default:false" json:"success"`
-	FailureReason string    `gorm:"type:varchar(100)" json:"failure_reason"`
+	UserID        uint64 `gorm:"index" json:"user_id"`
+	TenantID      uint64 `gorm:"index" json:"tenant_id"`
+	Email         string `gorm:"type:varchar(255);index" json:"email"`
+	IPAddress     string `gorm:"type:varchar(45)" json:"ip_address"`
+	UserAgent     string `gorm:"type:text" json:"user_agent"`
+	Success       bool   `gorm:"default:false" json:"success"`
+	FailureReason string `gorm:"type:varchar(100)" json:"failure_reason"`
 }
 
 func (LoginAttempt) TableName() string {
@@ -254,14 +260,14 @@ func (up *UserProfile) BeforeCreate(tx *gorm.DB) error {
 // FieldPermission 字段权限配置表
 type FieldPermission struct {
 	BaseModel
-	EntityTable  string `gorm:"type:varchar(100);not null;index" json:"entity_table"`   // 表名
-	FieldName    string `gorm:"type:varchar(100);not null;index" json:"field_name"`     // 字段名
-	FieldLabel   string `gorm:"type:varchar(100);not null" json:"field_label"`          // 字段显示名
-	FieldType    string `gorm:"type:varchar(50);not null" json:"field_type"`            // 字段类型
+	EntityTable  string `gorm:"type:varchar(100);not null;index" json:"entity_table"`    // 表名
+	FieldName    string `gorm:"type:varchar(100);not null;index" json:"field_name"`      // 字段名
+	FieldLabel   string `gorm:"type:varchar(100);not null" json:"field_label"`           // 字段显示名
+	FieldType    string `gorm:"type:varchar(50);not null" json:"field_type"`             // 字段类型
 	DefaultValue string `gorm:"type:varchar(20);default:'default'" json:"default_value"` // 默认权限值
-	Description  string `gorm:"type:text" json:"description"`                           // 字段描述
-	SortOrder    int    `gorm:"default:0" json:"sort_order"`                           // 排序
-	IsActive     bool   `gorm:"default:true" json:"is_active"`                         // 是否启用
+	Description  string `gorm:"type:text" json:"description"`                            // 字段描述
+	SortOrder    int    `gorm:"default:0" json:"sort_order"`                             // 排序
+	IsActive     bool   `gorm:"default:true" json:"is_active"`                           // 是否启用
 }
 
 func (FieldPermission) TableName() string {
@@ -293,17 +299,17 @@ func (RoleFieldPermission) TableName() string {
 // PermissionAuditLog 权限操作审计日志
 type PermissionAuditLog struct {
 	BaseModel
-	TenantID     uint64 `gorm:"not null;index" json:"tenant_id"`
-	OperatorID   uint64 `gorm:"not null;index" json:"operator_id"`       // 操作人
-	TargetType   string `gorm:"type:varchar(50);not null" json:"target_type"` // user, role, permission
-	TargetID     uint64 `gorm:"not null;index" json:"target_id"`         // 目标ID
-	Action         string `gorm:"type:varchar(50);not null" json:"action"`         // grant, revoke, create, delete
-	PermissionCode string `gorm:"type:varchar(100)" json:"permission_code"`        // 权限代码
-	OldValue       string `gorm:"type:text" json:"old_value"`                      // 变更前值
-	NewValue     string `gorm:"type:text" json:"new_value"`              // 变更后值
-	Reason       string `gorm:"type:text" json:"reason"`                 // 操作原因
-	IPAddress    string `gorm:"type:varchar(45)" json:"ip_address"`      // 操作IP
-	UserAgent    string `gorm:"type:text" json:"user_agent"`             // 用户代理
+	TenantID       uint64 `gorm:"not null;index" json:"tenant_id"`
+	OperatorID     uint64 `gorm:"not null;index" json:"operator_id"`            // 操作人
+	TargetType     string `gorm:"type:varchar(50);not null" json:"target_type"` // user, role, permission
+	TargetID       uint64 `gorm:"not null;index" json:"target_id"`              // 目标ID
+	Action         string `gorm:"type:varchar(50);not null" json:"action"`      // grant, revoke, create, delete
+	PermissionCode string `gorm:"type:varchar(100)" json:"permission_code"`     // 权限代码
+	OldValue       string `gorm:"type:text" json:"old_value"`                   // 变更前值
+	NewValue       string `gorm:"type:text" json:"new_value"`                   // 变更后值
+	Reason         string `gorm:"type:text" json:"reason"`                      // 操作原因
+	IPAddress      string `gorm:"type:varchar(45)" json:"ip_address"`           // 操作IP
+	UserAgent      string `gorm:"type:text" json:"user_agent"`                  // 用户代理
 }
 
 func (PermissionAuditLog) TableName() string {
@@ -321,11 +327,11 @@ func (pal *PermissionAuditLog) BeforeCreate(tx *gorm.DB) error {
 // PhoneBlacklist 手机号黑名单模型
 type PhoneBlacklist struct {
 	TenantModel
-	PhoneMD5    string `gorm:"type:char(32);not null;uniqueIndex:uk_tenant_phone_md5" json:"phone_md5"`
-	Source      string `gorm:"type:varchar(50);not null" json:"source"`                 // manual, import, api
-	Reason      string `gorm:"type:varchar(200)" json:"reason"`                         // 加入黑名单原因
-	OperatorID  uint64 `gorm:"index" json:"operator_id"`                               // 操作人ID
-	IsActive    bool   `gorm:"default:true" json:"is_active"`                          // 是否有效
+	PhoneMD5   string `gorm:"type:char(32);not null;uniqueIndex:uk_tenant_phone_md5" json:"phone_md5"`
+	Source     string `gorm:"type:varchar(50);not null" json:"source"` // manual, import, api
+	Reason     string `gorm:"type:varchar(200)" json:"reason"`         // 加入黑名单原因
+	OperatorID uint64 `gorm:"index" json:"operator_id"`                // 操作人ID
+	IsActive   bool   `gorm:"default:true" json:"is_active"`           // 是否有效
 }
 
 func (PhoneBlacklist) TableName() string {
@@ -351,14 +357,14 @@ func (pb *PhoneBlacklist) BeforeCreate(tx *gorm.DB) error {
 // BlacklistApiCredential 黑名单API密钥模型
 type BlacklistApiCredential struct {
 	TenantModel
-	APIKey      string `gorm:"type:varchar(64);not null;uniqueIndex" json:"api_key"`
-	APISecret   string `gorm:"type:varchar(128);not null" json:"api_secret"`
-	Name        string `gorm:"type:varchar(100);not null" json:"name"`                // 密钥名称
-	Description string `gorm:"type:text" json:"description"`                         // 描述
-	RateLimit   int    `gorm:"default:1000" json:"rate_limit"`                       // 每秒请求限制
-	Status      string `gorm:"type:varchar(20);default:'active'" json:"status"`      // active, inactive, suspended
-	LastUsedAt  *time.Time `json:"last_used_at"`                                     // 最后使用时间
-	ExpiresAt   *time.Time `json:"expires_at"`                                       // 过期时间
+	APIKey      string     `gorm:"type:varchar(64);not null;uniqueIndex" json:"api_key"`
+	APISecret   string     `gorm:"type:varchar(128);not null" json:"api_secret"`
+	Name        string     `gorm:"type:varchar(100);not null" json:"name"`          // 密钥名称
+	Description string     `gorm:"type:text" json:"description"`                    // 描述
+	RateLimit   int        `gorm:"default:1000" json:"rate_limit"`                  // 每秒请求限制
+	Status      string     `gorm:"type:varchar(20);default:'active'" json:"status"` // active, inactive, suspended
+	LastUsedAt  *time.Time `json:"last_used_at"`                                    // 最后使用时间
+	ExpiresAt   *time.Time `json:"expires_at"`                                      // 过期时间
 }
 
 func (BlacklistApiCredential) TableName() string {
@@ -384,14 +390,14 @@ func (bac *BlacklistApiCredential) BeforeCreate(tx *gorm.DB) error {
 // BlacklistQueryLog 黑名单查询日志模型（用于统计分析）
 type BlacklistQueryLog struct {
 	BaseModelWithoutUUID
-	TenantID      uint64    `gorm:"not null;index" json:"tenant_id"`
-	APIKey        string    `gorm:"type:varchar(64);not null;index" json:"api_key"`
-	PhoneMD5      string    `gorm:"type:char(32);not null" json:"phone_md5"`
-	IsHit         bool      `gorm:"default:false" json:"is_hit"`                    // 是否命中黑名单
-	ResponseTime  int       `gorm:"not null" json:"response_time"`                 // 响应时间(毫秒)
-	ClientIP      string    `gorm:"type:varchar(45)" json:"client_ip"`             // 客户端IP
-	UserAgent     string    `gorm:"type:text" json:"user_agent"`                   // 用户代理
-	RequestID     string    `gorm:"type:varchar(64);index" json:"request_id"`      // 请求ID
+	TenantID     uint64 `gorm:"not null;index" json:"tenant_id"`
+	APIKey       string `gorm:"type:varchar(64);not null;index" json:"api_key"`
+	PhoneMD5     string `gorm:"type:char(32);not null" json:"phone_md5"`
+	IsHit        bool   `gorm:"default:false" json:"is_hit"`              // 是否命中黑名单
+	ResponseTime int    `gorm:"not null" json:"response_time"`            // 响应时间(毫秒)
+	ClientIP     string `gorm:"type:varchar(45)" json:"client_ip"`        // 客户端IP
+	UserAgent    string `gorm:"type:text" json:"user_agent"`              // 用户代理
+	RequestID    string `gorm:"type:varchar(64);index" json:"request_id"` // 请求ID
 }
 
 func (BlacklistQueryLog) TableName() string {

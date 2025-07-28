@@ -3,6 +3,8 @@ package test
 
 import (
 	"fmt"
+	"net/http"
+	"strconv"
 	"testing"
 	"time"
 
@@ -20,6 +22,7 @@ import (
 	"github.com/varluffy/shield/pkg/redis"
 	"github.com/varluffy/shield/pkg/response"
 	"github.com/varluffy/shield/pkg/transaction"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -163,7 +166,7 @@ func NewTestComponents(db *gorm.DB, testLogger *logger.Logger) *TestComponents {
 	responseWriter := response.NewResponseWriter(testLogger)
 
 	// 创建Handlers
-	userHandler := handlers.NewUserHandler(userService, testLogger)
+	userHandler := handlers.NewUserHandler(userService, permissionService, testLogger)
 	permissionHandler := handlers.NewPermissionHandler(permissionService, testLogger)
 	roleHandler := handlers.NewRoleHandler(roleService, testLogger)
 	fieldPermissionHandler := handlers.NewFieldPermissionHandler(fieldPermissionService, testLogger)
@@ -388,4 +391,153 @@ func SeedTestData(db *gorm.DB) {
 		GrantedBy: systemAdmin.ID,
 		IsActive:  true,
 	})
+}
+
+// =============================================================================
+// 认证辅助方法
+// =============================================================================
+
+// StandardTestUser 标准测试用户配置
+type StandardTestUser struct {
+	Email     string
+	Password  string
+	Name      string
+	TenantID  uint64
+	RoleCode  string
+	IsActive  bool
+}
+
+// GetStandardTestUsers 获取标准测试用户配置
+func GetStandardTestUsers() []StandardTestUser {
+	return []StandardTestUser{
+		{
+			Email:    "admin@system.test",
+			Password: "admin123",
+			Name:     "系统管理员",
+			TenantID: 0, // 系统租户
+			RoleCode: "system_admin",
+			IsActive: true,
+		},
+		{
+			Email:    "admin@tenant.test",
+			Password: "admin123",
+			Name:     "租户管理员",
+			TenantID: 1, // 默认租户
+			RoleCode: "tenant_admin",
+			IsActive: true,
+		},
+		{
+			Email:    "user@tenant.test",
+			Password: "user123",
+			Name:     "普通用户",
+			TenantID: 1, // 默认租户
+			RoleCode: "user",
+			IsActive: true,
+		},
+		{
+			Email:    "test@example.com",
+			Password: "test123",
+			Name:     "测试用户",
+			TenantID: 1, // 默认租户
+			RoleCode: "user",
+			IsActive: true,
+		},
+	}
+}
+
+// HashTestPassword 生成测试密码的BCrypt哈希
+func HashTestPassword(password string) string {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to hash test password: %v", err))
+	}
+	return string(hashedPassword)
+}
+
+// GenerateTestJWT 为测试用户生成JWT Token
+func GenerateTestJWT(components *TestComponents, userID, tenantID string) (string, error) {
+	// 生成JWT Token - 需要用户邮箱，先构造一个测试邮箱
+	testEmail := fmt.Sprintf("test-user-%s@example.com", userID)
+	
+	token, err := components.JWTService.GenerateAccessToken(userID, testEmail, tenantID)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate JWT token: %w", err)
+	}
+	
+	return token, nil
+}
+
+// CreateAuthHeader 创建认证请求头
+func CreateAuthHeader(token string) http.Header {
+	header := make(http.Header)
+	header.Set("Authorization", "Bearer "+token)
+	header.Set("Content-Type", "application/json")
+	return header
+}
+
+// LoginAsTestUser 使用标准测试用户快速登录
+func LoginAsTestUser(components *TestComponents, email string) (string, error) {
+	// 查找标准测试用户
+	testUsers := GetStandardTestUsers()
+	var targetUser *StandardTestUser
+	for _, user := range testUsers {
+		if user.Email == email {
+			targetUser = &user
+			break
+		}
+	}
+	
+	if targetUser == nil {
+		return "", fmt.Errorf("test user with email %s not found", email)
+	}
+	
+	// 生成JWT Token
+	userUUID := fmt.Sprintf("test-user-%d", targetUser.TenantID)
+	tenantIDStr := strconv.FormatUint(targetUser.TenantID, 10)
+	
+	return GenerateTestJWT(components, userUUID, tenantIDStr)
+}
+
+// CreateStandardTestUser 创建标准测试用户实例
+func CreateStandardTestUser(db *gorm.DB, testUser StandardTestUser) *models.User {
+	// 检查用户是否已存在
+	var existingUser models.User
+	err := db.Where("tenant_id = ? AND email = ?", testUser.TenantID, testUser.Email).First(&existingUser).Error
+	if err == nil {
+		return &existingUser // 用户已存在，直接返回
+	}
+	
+	// 创建新用户
+	user := &models.User{
+		TenantModel: models.TenantModel{TenantID: testUser.TenantID},
+		Email:       testUser.Email,
+		Password:    HashTestPassword(testUser.Password),
+		Name:        testUser.Name,
+		Status:      "active",
+	}
+	
+	if testUser.IsActive {
+		user.Status = "active"
+	} else {
+		user.Status = "inactive"
+	}
+	
+	if err := db.Create(user).Error; err != nil {
+		panic(fmt.Sprintf("Failed to create standard test user %s: %v", testUser.Email, err))
+	}
+	
+	return user
+}
+
+// SetupStandardTestUsers 设置所有标准测试用户
+func SetupStandardTestUsers(db *gorm.DB) map[string]*models.User {
+	testUsers := GetStandardTestUsers()
+	userMap := make(map[string]*models.User)
+	
+	for _, testUser := range testUsers {
+		user := CreateStandardTestUser(db, testUser)
+		userMap[testUser.Email] = user
+	}
+	
+	return userMap
 }

@@ -2,6 +2,13 @@
 
 This file provides specialized guidance to Claude Code (claude.ai/code) when working with code in this repository, focusing on AI-assisted development workflows and patterns.
 
+## 🚨 CRITICAL DATABASE RULE 🚨
+**NEVER USE DIRECT MySQL COMMANDS - ONLY USE MCP TOOL**
+- ❌ `mysql -u root -p shield` ← FORBIDDEN
+- ❌ `mysql < file.sql` ← FORBIDDEN  
+- ❌ `mysqldump shield` ← FORBIDDEN
+- ✅ Use MCP tool interface for ALL database operations
+
 ## 📖 Quick Reference
 
 **Project Type**: Go microservices framework with clean architecture  
@@ -18,7 +25,7 @@ These commands are optimized for AI-assisted development workflows:
 make quick-init        # Fast setup for AI development session
 make run               # Start development server (auto-cleanup)
 make wire              # Regenerate DI code after changes
-bash scripts/quality-check.sh  # Full quality validation
+make wire && make test  # Full validation
 
 # 🔧 AI Development Iteration
 make wire && make test # Essential after adding new components
@@ -29,7 +36,7 @@ make stop-service     # Clean stop when switching contexts
 go test -v ./test/ -run TestCaptcha           # Test specific features
 go test -v ./test/ -run TestPermission        # Permission system tests
 go test -v -cover ./internal/services/        # Service layer coverage
-bash scripts/quality-check.sh                # Comprehensive validation
+make wire && make test                # Comprehensive validation
 ```
 
 ### AI Development Workflow
@@ -42,23 +49,59 @@ bash scripts/quality-check.sh                # Comprehensive validation
 ```
 
 ### Database Operations (AI-Optimized)
-**🤖 Use MCP tool for all database queries** - Never use direct `mysql` commands
+**🚨 CRITICAL: ALWAYS Use MCP Tool for MySQL Operations 🚨**
+
+**❌ NEVER USE THESE COMMANDS:**
+```bash
+# ❌ FORBIDDEN - DO NOT USE
+mysql -u root -p shield
+mysql -h localhost -u root -p -e "SELECT * FROM users;"
+mysqldump shield > backup.sql
+
+# ❌ THESE ARE ALSO FORBIDDEN  
+./scripts/mysql_query.sh
+sudo mysql shield
+```
+
+**✅ ALWAYS USE MCP TOOL:**
 ```sql
--- Common AI development queries:
+-- ✅ CORRECT WAY - Use MCP tool for ALL database queries
 SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'shield';
 SELECT tenant_id, COUNT(*) as user_count FROM users GROUP BY tenant_id;
 SELECT * FROM permissions WHERE scope = 'tenant' LIMIT 10;
+SHOW DATABASES LIKE 'shield';
 ```
+
+**🎯 Why MCP Tool Only:**
+- ✅ Proper connection management and security
+- ✅ Consistent authentication and permissions  
+- ✅ Integrated with Claude Code environment
+- ✅ Prevents accidental data corruption
+- ❌ Direct MySQL commands bypass security controls
 
 ## 🎯 AI-Focused Architecture Patterns
 
 ### Critical Rules for AI Development
+- **🚨 DATABASE OPERATIONS**: NEVER use direct MySQL commands - ONLY use MCP tool
 - **Wire Dependency Injection**: ALWAYS run `make wire` after modifying providers
 - **Clean Architecture**: Handler → Service → Repository (never skip layers)
 - **Multi-Tenant Context**: All operations must include tenant isolation
 - **Context Propagation**: Pass `context.Context` through all layers for tracing
 
 ### AI Development Anti-Patterns to Avoid
+
+**🚨 NEVER Use Direct MySQL Commands:**
+```bash
+# ❌ ABSOLUTELY FORBIDDEN - These will cause issues
+mysql -u root -p shield -e "INSERT INTO users..."
+mysql shield < migration.sql
+./any_mysql_script.sh
+
+# ✅ CORRECT - Use MCP tool only
+# Use MCP tool interface for ALL database operations
+```
+
+**❌ Architecture Violations:**
 ```go
 // ❌ DON'T: Handler calling Repository directly
 func (h *UserHandler) GetUser(c *gin.Context) {
@@ -158,11 +201,15 @@ make status           # Verify clean state
 ```bash
 # Quick diagnostics:
 # 1. Check MySQL is running: systemctl status mysql
-# 2. Test connection via MCP tool:
+# 2. ✅ Test connection via MCP tool ONLY:
 SELECT 1;  # Should return 1 if connected
 
-# 3. Verify database exists:
+# 3. ✅ Verify database exists via MCP tool:
 SHOW DATABASES LIKE 'shield';
+
+# ❌ NEVER use these commands:
+# mysql -u root -p shield  <-- FORBIDDEN
+# mysql shield -e "SELECT 1;"  <-- FORBIDDEN
 ```
 
 **4. Multi-Tenant Context Missing**
@@ -182,17 +229,29 @@ func (s *service) GetEntities(ctx context.Context) ([]*Entity, error) {
 
 ### AI Development Gotchas
 
-1. **Wire Provider Order**: Add providers to correct ProviderSet files
-2. **Context Propagation**: Always pass `context.Context` through all layers
-3. **Tenant Isolation**: Every user operation MUST include tenant_id filtering
-4. **Database Transactions**: Use MCP tool, never direct MySQL commands
-5. **Testing**: Run `bash scripts/quality-check.sh` before committing
+1. **🚨 DATABASE ACCESS**: NEVER use direct MySQL commands - ONLY MCP tool (this is critical!)
+2. **Wire Provider Order**: Add providers to correct ProviderSet files
+3. **Context Propagation**: Always pass `context.Context` through all layers
+4. **Tenant Isolation**: Every user operation MUST include tenant_id filtering
+5. **Testing**: Run `make test` before committing
+
+**⚠️ Common MySQL Command Mistakes to Avoid:**
+```bash
+# ❌ These are all FORBIDDEN:
+mysql -u root -p
+mysql shield
+./run_sql.sh
+mysqldump shield
+mysql < backup.sql
+
+# ✅ ONLY use MCP tool for ANY database operation
+```
 
 ### Quick Validation Commands
 ```bash
 # After making changes:
 make wire && make test  # Essential validation
-bash scripts/quality-check.sh  # Full quality check
+make wire && make test  # Full quality check
 
 # For debugging specific issues:
 make status            # Check service health
@@ -201,25 +260,127 @@ go test -v ./test/ -run TestPermission  # Test specific subsystem
 
 ## 🧪 AI Testing Patterns
 
-### Development Testing Workflow
-```bash
-# Quick API testing pattern for AI development:
-# 1. Get test token (bypasses captcha)
-curl -X POST "http://localhost:8080/api/v1/auth/test-login" \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@example.com","password":"admin123","tenant_id":"1"}'
+### Standard Test Users (Essential for AI Development)
+**🎯 Use these pre-configured test users to avoid login debugging:**
 
-# 2. Extract token and test endpoints
+```bash
+# Create standard test users with known passwords
+go run cmd/migrate/*.go -action=create-test-users -config=configs/config.dev.yaml
+
+# List test user status
+go run cmd/migrate/*.go -action=list-test-users -config=configs/config.dev.yaml
+```
+
+**Available Test Users:**
+- **System Admin**: `admin@system.test` / `admin123` (tenant_id: 0, bypasses all permissions)
+- **Tenant Admin**: `admin@tenant.test` / `admin123` (tenant_id: 1)
+- **Test User**: `test@example.com` / `test123` (tenant_id: 1)
+- **Regular User**: `user@tenant.test` / `user123` (tenant_id: 1)
+
+### AI Development Testing Pattern
+```bash
+# 1. Get test token (bypasses captcha) - SYSTEM ADMIN (recommended for development)
 JWT_TOKEN=$(curl -s -X POST "http://localhost:8080/api/v1/auth/test-login" \
-  -d '{"email":"admin@example.com","password":"admin123","tenant_id":"1"}' | \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@system.test","password":"admin123","tenant_id":"0"}' | \
   jq -r '.data.access_token')
 
-# 3. Test with authorization
+# 2. Test with authorization  
 curl -H "Authorization: Bearer $JWT_TOKEN" "http://localhost:8080/api/v1/users/profile"
+
+# 3. For tenant-specific testing
+JWT_TOKEN=$(curl -s -X POST "http://localhost:8080/api/v1/auth/test-login" \
+  -d '{"email":"test@example.com","password":"test123","tenant_id":"1"}' | \
+  jq -r '.data.access_token')
+```
+
+### Service Layer Unit Testing (AI-Optimized)
+**🏆 Shield has comprehensive service layer unit tests covering 4 core services:**
+
+```bash
+# Run all service unit tests (1400+ lines of test code)
+go test -v ./test/ -run ".*ServiceUnitTests"
+
+# Run specific service tests
+go test -v ./test/ -run TestUserServiceUnitTests        # User service tests
+go test -v ./test/ -run TestPermissionServiceUnitTests  # Permission service tests  
+go test -v ./test/ -run TestRoleServiceUnitTests        # Role service tests
+go test -v ./test/ -run TestBlacklistServiceUnitTests   # Blacklist service tests
+
+# Run specific test scenarios
+go test -v ./test/ -run "TestUserService.*CreateUser"       # All CreateUser tests
+go test -v ./test/ -run "TestPermissionService.*IsSystem"   # System admin tests
+go test -v ./test/ -run "TestRoleService.*AssignPermissions" # Permission assignment tests
+```
+
+**Service Testing Architecture:**
+- ✅ **Real Database Connections**: No mocks, ensures integration reliability
+- ✅ **Standard Test Users**: Consistent authentication across all tests
+- ✅ **Comprehensive Error Scenarios**: Input validation, business logic, resource not found
+- ✅ **Full CRUD Coverage**: Create, Read, Update, Delete operations tested
+- ✅ **Tenant Isolation Testing**: Multi-tenant context validation
+
+### Service Testing Helpers (AI Code Generation)
+**🔧 Use these test helper patterns when adding new services:**
+
+```go
+// 1. Setup test database and standard users
+db, cleanup := SetupTestDB(t)
+if db == nil {
+    return // Skip if database unavailable
+}
+defer cleanup()
+
+// 2. Get standard test users (avoid creating new users)
+testUsers := SetupStandardTestUsers(db)
+systemAdmin := testUsers["admin@system.test"]
+tenantAdmin := testUsers["admin@tenant.test"]
+regularUser := testUsers["user@tenant.test"]
+
+// 3. Create test components (full service stack)
+testLogger, err := NewTestLogger()
+require.NoError(t, err)
+components := NewTestComponents(db, testLogger)
+
+// 4. Generate JWT for authentication testing
+token, err := GenerateTestJWT(components, systemAdmin.UUID, "0")
+require.NoError(t, err)
+authHeaders := CreateAuthHeader(token)
+```
+
+**Essential Testing Pattern for New Services:**
+```go
+func TestNewServiceUnitTests(t *testing.T) {
+    // Standard setup (copy from existing service tests)
+    db, cleanup := SetupTestDB(t)
+    if db == nil { return }
+    defer cleanup()
+    
+    testUsers := SetupStandardTestUsers(db)
+    testLogger, err := NewTestLogger()
+    require.NoError(t, err)
+    components := NewTestComponents(db, testLogger)
+    
+    // Test success scenarios
+    t.Run("Test Create Success", func(t *testing.T) {
+        // Test successful creation with valid data
+    })
+    
+    // Test error scenarios  
+    t.Run("Test Create Invalid Input", func(t *testing.T) {
+        // Test validation errors, missing fields, etc.
+    })
+    
+    // Test business logic
+    t.Run("Test Business Logic", func(t *testing.T) {
+        // Test specific business rules and constraints
+    })
+}
 ```
 
 ### AI Testing Scripts
-- `bash scripts/quality-check.sh` - Comprehensive validation (use before commits)
+- `make test` - Run all tests (use before commits)
+- `make wire && make test` - Full validation cycle (essential after code changes)
 - `scripts/test_permissions.sh` - Permission system validation
 - `go test -v ./test/ -run TestCaptcha` - Feature-specific testing
 
@@ -231,14 +392,32 @@ For comprehensive guidance, see the structured documentation:
 - **[Architecture Guide](docs/development/architecture.md)** - Detailed architecture rules and patterns  
 - **[API Development](docs/development/api-guide.md)** - API design and implementation standards
 - **[Testing Guide](docs/development/testing-guide.md)** - Testing strategies and best practices
+- **[Service Testing Guide](docs/development/service-testing-guide.md)** - Service layer unit testing patterns ✨
+- **[Test Users Guide](docs/development/test-users.md)** - Standard test users and authentication
 
 ## 🚨 Critical AI Reminders
 
-1. **ALWAYS run `make wire`** after modifying any constructor or provider
-2. **Use MCP tool** for all database operations (never direct mysql commands)
+1. **🚨🚨 NEVER USE DIRECT MySQL COMMANDS 🚨🚨** - ONLY use MCP tool for database operations
+2. **ALWAYS run `make wire`** after modifying any constructor or provider
 3. **Include tenant_id** in all user data models and queries
 4. **Pass context.Context** through all function calls for tracing
-5. **Run quality checks** before suggesting code changes: `bash scripts/quality-check.sh`
+5. **Use standard test users** for authentication testing: `admin@system.test` / `admin123`
+6. **Follow service testing patterns** when adding new services (see service-testing-guide.md)
+7. **Run comprehensive tests** before suggesting code changes: `make wire && make test`
+8. **Use real database connections** in service tests (no mocks) for integration reliability
+
+**💀 ABSOLUTE PROHIBITION - DO NOT USE:**
+```bash
+mysql -u root -p shield  # ❌ FORBIDDEN
+mysql < file.sql         # ❌ FORBIDDEN  
+mysqldump shield         # ❌ FORBIDDEN
+./mysql_scripts.sh       # ❌ FORBIDDEN
+```
+
+**✅ ONLY ALLOWED DATABASE ACCESS:**
+- Use MCP tool interface ONLY
+- All SQL queries through MCP tool
+- No exceptions to this rule
 
 ---
 

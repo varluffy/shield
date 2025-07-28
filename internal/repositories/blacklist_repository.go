@@ -103,7 +103,7 @@ func (r *blacklistRepository) BatchCreate(ctx context.Context, blacklists []*mod
 	if len(blacklists) == 0 {
 		return nil
 	}
-	
+
 	// 使用事务批量插入，提高性能
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		return tx.CreateInBatches(blacklists, 1000).Error
