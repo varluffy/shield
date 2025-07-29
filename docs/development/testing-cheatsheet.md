@@ -19,6 +19,7 @@ go test -v ./test/ -run ".*ServiceUnitTests"
 go test -v ./test/ -run TestUserServiceUnitTests
 go test -v ./test/ -run TestPermissionServiceUnitTests
 go test -v ./test/ -run TestRoleServiceUnitTests
+go test -v ./test/ -run TestFieldPermissionServiceUnitTests
 go test -v ./test/ -run TestBlacklistServiceUnitTests
 
 # 集成测试
@@ -42,6 +43,7 @@ go test -race ./test/
 # 特定功能测试
 go test -v ./test/ -run TestCaptcha
 go test -v ./test/ -run TestPermission
+go test -v ./test/ -run TestFieldPermission
 
 # 检查服务状态
 make status
@@ -168,6 +170,28 @@ t.Run("Test Tenant Isolation", func(t *testing.T) {
     result, err := service.GetByTenant(ctx2, 2)
     require.NoError(t, err)
     assert.Empty(t, result, "租户2不应该看到租户1的数据")
+})
+```
+
+### 字段权限测试模板
+```go
+t.Run("Test Field Permission Filtering", func(t *testing.T) {
+    // 设置角色字段权限：隐藏密码字段
+    permissions := []models.RoleFieldPermission{
+        {
+            RoleID:         roleID,
+            EntityTable:    "users",
+            FieldName:      "password",
+            PermissionType: "hidden",
+        },
+    }
+    
+    err := fieldPermissionService.UpdateRoleFieldPermissions(ctx, roleID, "users", permissions)
+    require.NoError(t, err)
+    
+    // 验证API响应不包含隐藏字段
+    response := callUserAPI(user.UUID)
+    assert.NotContains(t, response, "password", "密码字段应该被隐藏")
 })
 ```
 

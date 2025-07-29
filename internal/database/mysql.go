@@ -102,6 +102,9 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.RefreshToken{},
 		&models.LoginAttempt{},
 		&models.UserProfile{},
+		// 字段权限相关模型
+		&models.FieldPermission{},
+		&models.RoleFieldPermission{},
 		// 黑名单相关模型
 		&models.PhoneBlacklist{},
 		&models.BlacklistApiCredential{},

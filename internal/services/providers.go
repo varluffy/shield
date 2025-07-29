@@ -20,7 +20,7 @@ var ProviderSet = wire.NewSet(
 	NewFieldPermissionService,
 
 	// Cache相关Service
-	NewPermissionCacheService,
+	NewPermissionCacheServiceWithFallback,
 
 	// Audit相关Service
 	NewPermissionAuditService,

@@ -47,7 +47,9 @@ func TestPermissionSystemIntegration(t *testing.T) {
 		components.RoleHandler,
 		components.FieldPermissionHandler,
 		nil, // blacklistHandler - 测试中不需要
+		nil, // apiCredentialHandler - 测试中不需要
 		components.AuthMiddleware,
+		nil, // permissionMiddleware - 测试中暂不需要
 		nil, // blacklistAuthMiddleware - 测试中不需要
 		nil, // blacklistLogMiddleware - 测试中不需要
 	)
@@ -261,8 +263,10 @@ func TestPermissionSystemIntegration(t *testing.T) {
 	})
 }
 
-// TestPermissionServiceUnitTests 权限服务单元测试
-func TestPermissionServiceUnitTests(t *testing.T) {
+// Note: TestPermissionServiceUnitTests is defined in permission_service_test.go to avoid duplication
+
+// TestSystemPermissionFiltering 测试系统权限过滤功能
+func TestSystemPermissionFiltering(t *testing.T) {
 	// 设置测试数据库
 	db, cleanup := SetupTestDB(t)
 	if db == nil {
@@ -276,7 +280,6 @@ func TestPermissionServiceUnitTests(t *testing.T) {
 	// 创建测试组件
 	testLogger, err := NewTestLogger()
 	require.NoError(t, err)
-
 	components := NewTestComponents(db, testLogger)
 
 	t.Run("Test IsSystemAdmin Method", func(t *testing.T) {

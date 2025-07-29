@@ -25,6 +25,7 @@ func SetupRoutes(
 	blacklistHandler *handlers.BlacklistHandler,
 	apiCredentialHandler *handlers.ApiCredentialHandler,
 	authMiddleware *middleware.AuthMiddleware,
+	permissionMiddleware *middleware.PermissionMiddleware,
 	blacklistAuthMiddleware *middleware.BlacklistAuthMiddleware,
 	blacklistLogMiddleware *middleware.BlacklistLogMiddleware,
 ) *gin.Engine {
@@ -83,8 +84,8 @@ func SetupRoutes(
 		users := api.Group("/users")
 		users.Use(authMiddleware.RequireAuth()) // 要求认证
 		{
-			users.GET("", authMiddleware.ValidateAPIPermission(), userHandler.ListUsers)
-			users.GET("/:uuid", authMiddleware.ValidateAPIPermission(), userHandler.GetUser)
+			users.GET("", authMiddleware.ValidateAPIPermission(), permissionMiddleware.InjectFieldPermissions("users"), userHandler.ListUsers)
+			users.GET("/:uuid", authMiddleware.ValidateAPIPermission(), permissionMiddleware.InjectFieldPermissions("users"), userHandler.GetUser)
 			users.PUT("/:uuid", authMiddleware.ValidateAPIPermission(), userHandler.UpdateUser)
 			users.DELETE("/:uuid", authMiddleware.ValidateAPIPermission(), userHandler.DeleteUser)
 		}
@@ -123,6 +124,7 @@ func SetupRoutes(
 		fieldPermissions := api.Group("/field-permissions")
 		fieldPermissions.Use(authMiddleware.RequireAuth()) // 要求认证
 		{
+			fieldPermissions.GET("/metadata", authMiddleware.ValidateAPIPermission(), fieldPermissionHandler.GetFieldMetadata)
 			fieldPermissions.GET("/tables/:tableName/fields", authMiddleware.ValidateAPIPermission(), fieldPermissionHandler.GetTableFields)
 			fieldPermissions.GET("/roles/:roleId/:tableName", authMiddleware.ValidateAPIPermission(), fieldPermissionHandler.GetRoleFieldPermissions)
 			fieldPermissions.PUT("/roles/:roleId/:tableName", authMiddleware.ValidateAPIPermission(), fieldPermissionHandler.UpdateRoleFieldPermissions)

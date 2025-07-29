@@ -32,7 +32,7 @@ func main() {
 	var tenantID string
 
 	flag.StringVar(&configPath, "config", "", "Path to config file")
-	flag.StringVar(&action, "action", "migrate", "Action: migrate, migrate-up, migrate-down, migrate-status, create-migration, create-user, update-user, list-users, create-test-users, clean-test-users, list-test-users")
+	flag.StringVar(&action, "action", "migrate", "Action: migrate, migrate-up, migrate-down, migrate-status, create-migration, create-user, update-user, list-users, create-test-users, clean-test-users, list-test-users, init-field-permissions")
 
 	// 迁移参数
 	flag.BoolVar(&clean, "clean", false, "Clean all tables before migration")
@@ -209,9 +209,16 @@ func main() {
 			log.Fatalf("Failed to list test users: %v", err)
 		}
 
+	case "init-field-permissions":
+		// 初始化字段权限配置
+		migration := NewMigration(db, appLogger.Logger)
+		if err := migration.InitializeFieldPermissions(); err != nil {
+			log.Fatalf("Failed to initialize field permissions: %v", err)
+		}
+
 	default:
 		fmt.Printf("Unknown action: %s\n", action)
-		fmt.Println("Available actions: migrate, create-user, update-user, list-users, create-test-users, clean-test-users, list-test-users")
+		fmt.Println("Available actions: migrate, create-user, update-user, list-users, create-test-users, clean-test-users, list-test-users, init-field-permissions")
 		os.Exit(1)
 	}
 }

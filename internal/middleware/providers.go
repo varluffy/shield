@@ -13,6 +13,9 @@ var ProviderSet = wire.NewSet(
 	// 认证中间件
 	NewAuthMiddleware,
 
+	// 权限中间件
+	NewPermissionMiddleware,
+
 	// 黑名单认证中间件
 	NewBlacklistAuthMiddlewareProvider,
 	NewBlacklistLogMiddlewareProvider,

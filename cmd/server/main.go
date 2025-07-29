@@ -75,6 +75,7 @@ func main() {
 		app.BlacklistHandler,
 		app.ApiCredentialHandler,
 		app.AuthMiddleware,
+		app.PermissionMiddleware,
 		app.BlacklistAuthMiddleware,
 		app.BlacklistLogMiddleware,
 	)

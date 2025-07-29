@@ -118,3 +118,60 @@ func HasFieldPermission(c *gin.Context, fieldName, requiredPermission string) bo
 		return permission == "default"
 	}
 }
+
+// FilterResponseByFieldPermissions 根据字段权限过滤响应数据
+func FilterResponseByFieldPermissions(c *gin.Context, data interface{}) interface{} {
+	permissions, exists := GetFieldPermissions(c)
+	if !exists {
+		return data // 如果没有字段权限信息，返回原数据
+	}
+
+	return filterDataByPermissions(data, permissions)
+}
+
+// filterDataByPermissions 递归过滤数据结构中的字段
+func filterDataByPermissions(data interface{}, permissions map[string]string) interface{} {
+	switch v := data.(type) {
+	case map[string]interface{}:
+		// 处理对象
+		filtered := make(map[string]interface{})
+		for key, value := range v {
+			permission, exists := permissions[key]
+			if !exists {
+				// 字段没有权限配置，默认显示
+				filtered[key] = filterDataByPermissions(value, permissions)
+			} else if permission != "hidden" {
+				// 字段权限不是hidden，显示字段
+				filtered[key] = filterDataByPermissions(value, permissions)
+			}
+			// permission == "hidden" 的字段会被过滤掉
+		}
+		return filtered
+
+	case []interface{}:
+		// 处理数组
+		filtered := make([]interface{}, len(v))
+		for i, item := range v {
+			filtered[i] = filterDataByPermissions(item, permissions)
+		}
+		return filtered
+
+	default:
+		// 基本类型直接返回
+		return data
+	}
+}
+
+// FilterSliceByFieldPermissions 过滤切片数据
+func FilterSliceByFieldPermissions(c *gin.Context, data []interface{}) []interface{} {
+	permissions, exists := GetFieldPermissions(c)
+	if !exists {
+		return data // 如果没有字段权限信息，返回原数据
+	}
+
+	filtered := make([]interface{}, len(data))
+	for i, item := range data {
+		filtered[i] = filterDataByPermissions(item, permissions)
+	}
+	return filtered
+}

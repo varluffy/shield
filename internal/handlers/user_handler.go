@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/varluffy/shield/internal/dto"
+	"github.com/varluffy/shield/internal/middleware"
 	"github.com/varluffy/shield/internal/services"
 	"github.com/varluffy/shield/pkg/errors"
 	"github.com/varluffy/shield/pkg/logger"
@@ -139,7 +140,10 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 		return
 	}
 
-	h.responseWriter.Success(c, user)
+	// 应用字段权限过滤
+	filteredUser := middleware.FilterResponseByFieldPermissions(c, user)
+
+	h.responseWriter.Success(c, filteredUser)
 }
 
 // UpdateUser 更新用户
@@ -298,6 +302,9 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 		return
 	}
 
+	// 应用字段权限过滤到用户列表
+	filteredUsers := middleware.FilterResponseByFieldPermissions(c, result.Users)
+
 	// 构建分页元数据
 	meta := &response.PaginationMeta{
 		Page:       filter.Page,
@@ -306,7 +313,7 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 		TotalPages: result.Meta.TotalPage,
 	}
 
-	h.responseWriter.Pagination(c, result.Users, meta)
+	h.responseWriter.Pagination(c, filteredUsers, meta)
 }
 
 // Login 用户登录

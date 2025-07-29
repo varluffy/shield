@@ -19,6 +19,7 @@
 - **[📖 快速开始](./development/getting-started.md)** - 15分钟快速上手项目
 - **[🏗️ 架构设计](./development/architecture.md)** - 清洁架构规范和开发约束
 - **[🔧 API 开发](./development/api-guide.md)** - RESTful API 设计和实现标准
+- **[🛡️ 字段权限系统](./development/field-permissions-guide.md)** - 字段级权限控制系统指南
 - **[🧪 测试指南](./development/testing-guide.md)** - 测试策略、工具和最佳实践
 
 ### 📖 API 文档
@@ -38,7 +39,8 @@
 1. [开发入门指南](./development/getting-started.md) - 环境搭建和快速开始
 2. [架构设计规范](./development/architecture.md) - 分层架构和开发约束
 3. [API 开发指南](./development/api-guide.md) - API 设计和实现
-4. [测试指南](./development/testing-guide.md) - 测试策略和工具
+4. [字段权限系统指南](./development/field-permissions-guide.md) - 字段级权限控制
+5. [测试指南](./development/testing-guide.md) - 测试策略和工具
 
 ### 🏗️ 架构师
 1. [架构文档总览](./architecture/) - 完整架构设计

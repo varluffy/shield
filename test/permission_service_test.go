@@ -296,8 +296,8 @@ func TestPermissionServiceErrorCases(t *testing.T) {
 		ctx := context.Background()
 
 		hasPermission, err := components.PermissionService.CheckUserPermission(ctx, "invalid-user-id", "1", "some_permission")
+		require.NoError(t, err)
 		assert.False(t, hasPermission)
-		// 可能不会报错，但应该返回false
 	})
 
 	t.Run("Test GetUserPermissions Invalid UserID", func(t *testing.T) {

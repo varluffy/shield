@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/varluffy/shield/internal/dto"
-	"github.com/varluffy/shield/internal/models"
 )
 
 // TestUserServiceUnitTests 用户服务单元测试
@@ -39,8 +38,6 @@ func TestUserServiceUnitTests(t *testing.T) {
 			Name:     "测试用户",
 			Email:    "newuser@test.com",
 			Password: "password123",
-			Language: "zh",
-			Timezone: "Asia/Shanghai",
 		}
 
 		user, err := components.UserService.CreateUser(ctx, req)
@@ -48,7 +45,7 @@ func TestUserServiceUnitTests(t *testing.T) {
 		assert.NotNil(t, user)
 		assert.Equal(t, req.Name, user.Name)
 		assert.Equal(t, req.Email, user.Email)
-		assert.NotEmpty(t, user.UUID)
+		assert.NotEmpty(t, user.ID)
 	})
 
 	t.Run("Test CreateUser Duplicate Email", func(t *testing.T) {
@@ -94,7 +91,7 @@ func TestUserServiceUnitTests(t *testing.T) {
 		user, err := components.UserService.GetUserByUUID(ctx, testUser.UUID)
 		require.NoError(t, err)
 		assert.NotNil(t, user)
-		assert.Equal(t, testUser.UUID, user.UUID)
+		assert.Equal(t, testUser.UUID, user.ID)
 		assert.Equal(t, testUser.Email, user.Email)
 	})
 
@@ -123,31 +120,27 @@ func TestUserServiceUnitTests(t *testing.T) {
 		require.NotNil(t, testUser, "测试用户应该存在")
 
 		req := dto.UpdateUserRequest{
-			Name:     "更新后的用户名",
-			Language: "en",
-			Timezone: "UTC",
+			Name: "更新后的用户名",
 		}
 
 		user, err := components.UserService.UpdateUserByUUID(ctx, testUser.UUID, req)
 		require.NoError(t, err)
 		assert.NotNil(t, user)
 		assert.Equal(t, "更新后的用户名", user.Name)
-		assert.Equal(t, "en", user.Language)
-		assert.Equal(t, "UTC", user.Timezone)
 	})
 
 	t.Run("Test ListUsers Success", func(t *testing.T) {
 		ctx := context.Background()
 		
 		filter := dto.UserFilter{
-			Page:     1,
-			PageSize: 10,
+			Page:  1,
+			Limit: 10,
 		}
 
 		response, err := components.UserService.ListUsers(ctx, filter)
 		require.NoError(t, err)
 		assert.NotNil(t, response)
-		assert.Greater(t, response.Total, int64(0))
+		assert.Greater(t, response.Meta.Total, 0)
 		assert.NotEmpty(t, response.Users)
 	})
 
@@ -157,7 +150,6 @@ func TestUserServiceUnitTests(t *testing.T) {
 		req := dto.LoginRequest{
 			Email:     "admin@system.test",
 			Password:  "admin123",
-			TenantID:  "0",
 			CaptchaID: "dev-bypass",
 			Answer:    "test-1234", // Using test config bypass code
 		}
@@ -177,7 +169,6 @@ func TestUserServiceUnitTests(t *testing.T) {
 		req := dto.LoginRequest{
 			Email:     "admin@system.test",
 			Password:  "wrong-password",
-			TenantID:  "0",
 			CaptchaID: "dev-bypass",
 			Answer:    "test-1234",
 		}
@@ -194,7 +185,6 @@ func TestUserServiceUnitTests(t *testing.T) {
 		req := dto.LoginRequest{
 			Email:     "nonexistent@test.com",
 			Password:  "password123",
-			TenantID:  "1",
 			CaptchaID: "dev-bypass",
 			Answer:    "test-1234",
 		}

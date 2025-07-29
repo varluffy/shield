@@ -18,7 +18,8 @@
       "Bash(chmod:*)",
       "Bash(go run:*)",
       "Bash(curl:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(./cmd/migrate/migrate:*)"
     ],
     "deny": []
   },

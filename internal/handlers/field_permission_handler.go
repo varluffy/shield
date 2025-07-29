@@ -33,6 +33,96 @@ func NewFieldPermissionHandler(
 	}
 }
 
+// GetFieldMetadata 获取所有可配置的表和字段元数据
+// @Summary 获取字段权限元数据
+// @Description 获取所有支持字段权限配置的表和字段信息
+// @Tags field-permissions
+// @Accept json
+// @Produce json
+// @Success 200 {object} response.Response{data=dto.FieldMetadataResponse}
+// @Failure 401 {object} response.Response "未授权"
+// @Failure 403 {object} response.Response "权限不足"
+// @Security BearerAuth
+// @Router /field-permissions/metadata [get]
+func (h *FieldPermissionHandler) GetFieldMetadata(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	h.logger.DebugWithTrace(ctx, "Getting field metadata")
+
+	// 支持字段权限的表列表
+	tables := []dto.TableMetadata{
+		{
+			TableName:   "users",
+			TableLabel:  "用户管理",
+			Description: "用户基本信息表",
+		},
+		{
+			TableName:   "candidates",
+			TableLabel:  "候选人管理",
+			Description: "候选人信息表",
+		},
+		// 可以继续添加其他表
+	}
+
+	// 为每个表获取字段信息
+	var tableFields []dto.TableFields
+	for _, table := range tables {
+		fields, err := h.fieldPermissionService.GetTableFields(ctx, table.TableName)
+		if err != nil {
+			h.logger.ErrorWithTrace(ctx, "Failed to get table fields",
+				zap.String("table_name", table.TableName),
+				zap.Error(err))
+			h.responseWriter.Error(c, errors.ErrInternalError("获取表字段失败"))
+			return
+		}
+
+		// 转换为DTO
+		var fieldDTOs []dto.FieldMetadata
+		for _, field := range fields {
+			fieldDTOs = append(fieldDTOs, dto.FieldMetadata{
+				FieldName:    field.FieldName,
+				FieldLabel:   field.FieldLabel,
+				FieldType:    field.FieldType,
+				Description:  field.Description,
+				DefaultValue: field.DefaultValue,
+				SortOrder:    field.SortOrder,
+				IsActive:     field.IsActive,
+			})
+		}
+
+		tableFields = append(tableFields, dto.TableFields{
+			TableMetadata: table,
+			Fields:        fieldDTOs,
+		})
+	}
+
+	response := dto.FieldMetadataResponse{
+		Tables: tableFields,
+		PermissionTypes: []dto.PermissionTypeInfo{
+			{
+				Type:        models.FieldPermissionDefault,
+				Label:       "默认",
+				Description: "正常显示和编辑",
+			},
+			{
+				Type:        models.FieldPermissionReadonly,
+				Label:       "只读",
+				Description: "显示但不能编辑",
+			},
+			{
+				Type:        models.FieldPermissionHidden,
+				Label:       "隐藏",
+				Description: "不显示该字段",
+			},
+		},
+	}
+
+	h.logger.DebugWithTrace(ctx, "Retrieved field metadata",
+		zap.Int("table_count", len(tableFields)))
+
+	h.responseWriter.Success(c, response)
+}
+
 // GetTableFields 获取表的字段配置
 // @Summary 获取表字段配置
 // @Description 获取指定表的字段权限配置列表
@@ -52,7 +142,7 @@ func (h *FieldPermissionHandler) GetTableFields(c *gin.Context) {
 	tableName := c.Param("tableName")
 	if tableName == "" {
 		h.logger.WarnWithTrace(ctx, "Missing table name parameter")
-		h.responseWriter.BadRequest(c, "Table name is required")
+		h.responseWriter.Error(c, errors.ErrInvalidRequest())
 		return
 	}
 
@@ -61,20 +151,30 @@ func (h *FieldPermissionHandler) GetTableFields(c *gin.Context) {
 		h.logger.ErrorWithTrace(ctx, "Failed to get table fields",
 			zap.Error(err),
 			zap.String("table_name", tableName))
-		h.responseWriter.Error(c, err)
+		h.responseWriter.Error(c, errors.ErrInternalError("获取表字段失败"))
 		return
 	}
 
-	// 转换为interface{}数组
-	interfaceFields := make([]interface{}, len(fields))
-	for i, field := range fields {
-		interfaceFields[i] = field
+	// 转换为DTO格式
+	var fieldDTOs []dto.FieldMetadata
+	for _, field := range fields {
+		fieldDTOs = append(fieldDTOs, dto.FieldMetadata{
+			FieldName:    field.FieldName,
+			FieldLabel:   field.FieldLabel,
+			FieldType:    field.FieldType,
+			Description:  field.Description,
+			DefaultValue: field.DefaultValue,
+			SortOrder:    field.SortOrder,
+			IsActive:     field.IsActive,
+		})
 	}
 
-	h.responseWriter.Success(c, dto.TableFieldsResponse{
+	response := dto.TableFieldsResponse{
 		TableName: tableName,
-		Fields:    interfaceFields,
-	})
+		Fields:    fieldDTOs,
+	}
+
+	h.responseWriter.Success(c, response)
 }
 
 // GetRoleFieldPermissions 获取角色的字段权限
@@ -140,30 +240,32 @@ func (h *FieldPermissionHandler) GetRoleFieldPermissions(c *gin.Context) {
 	}
 
 	// 构建完整的字段权限信息
-	var fieldPermissions []interface{}
+	var fieldPermissions []dto.FieldPermissionConfig
 	for _, field := range fields {
 		permission := field.DefaultValue // 使用默认权限
 		if p, exists := permissionMap[field.FieldName]; exists {
 			permission = p // 使用角色设置的权限
 		}
 
-		fieldPermissions = append(fieldPermissions, map[string]interface{}{
-			"field_name":         field.FieldName,
-			"field_label":        field.FieldLabel,
-			"field_type":         field.FieldType,
-			"default_value":      field.DefaultValue,
-			"current_permission": permission,
-			"description":        field.Description,
-			"sort_order":         field.SortOrder,
-			"is_active":          field.IsActive,
+		fieldPermissions = append(fieldPermissions, dto.FieldPermissionConfig{
+			FieldName:      field.FieldName,
+			FieldLabel:     field.FieldLabel,
+			FieldType:      field.FieldType,
+			DefaultValue:   field.DefaultValue,
+			PermissionType: permission,
+			Description:    field.Description,
+			SortOrder:      field.SortOrder,
 		})
 	}
 
-	h.responseWriter.Success(c, dto.RoleFieldPermissionsResponse{
+	response := dto.RoleFieldPermissionsResponse{
 		RoleID:           roleID,
 		TableName:        tableName,
 		FieldPermissions: fieldPermissions,
-	})
+		LastModified:     nil, // TODO: 从数据库获取
+	}
+
+	h.responseWriter.Success(c, response)
 }
 
 // UpdateRoleFieldPermissions 更新角色的字段权限
@@ -237,7 +339,7 @@ func (h *FieldPermissionHandler) UpdateRoleFieldPermissions(c *gin.Context) {
 
 	// 构建权限对象列表
 	var permissions []models.RoleFieldPermission
-	for _, fp := range req.FieldPermissions {
+	for _, fp := range req.Permissions {
 		permissions = append(permissions, models.RoleFieldPermission{
 			TenantID:       tenantIDUint64,
 			RoleID:         roleID,

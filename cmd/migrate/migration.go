@@ -294,3 +294,6 @@ func (m *Migration) RunPermissionMigration() error {
 	fmt.Println("🎉 Permission system migration completed successfully!")
 	return nil
 }
+
+// InitializeFieldPermissions 初始化字段权限 - 在field_permissions.go中实现
+// 这里只是声明，具体实现在field_permissions.go文件中

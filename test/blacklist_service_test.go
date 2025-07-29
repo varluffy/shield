@@ -6,7 +6,6 @@ import (
 	"crypto/md5"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,8 +21,8 @@ func TestBlacklistServiceUnitTests(t *testing.T) {
 	}
 	defer cleanup()
 
-	// 设置标准测试用户
-	testUsers := SetupStandardTestUsers(db)
+	// 设置标准测试用户（虽然本测试不直接使用，但确保数据一致性）
+	_ = SetupStandardTestUsers(db)
 
 	// 创建测试组件
 	testLogger, err := NewTestLogger()

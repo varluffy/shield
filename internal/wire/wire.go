@@ -74,6 +74,7 @@ type App struct {
 	BlacklistHandler        *handlers.BlacklistHandler
 	ApiCredentialHandler    *handlers.ApiCredentialHandler
 	AuthMiddleware          *middleware.AuthMiddleware
+	PermissionMiddleware    *middleware.PermissionMiddleware
 	BlacklistAuthMiddleware *middleware.BlacklistAuthMiddleware
 	BlacklistLogMiddleware  *middleware.BlacklistLogMiddleware
 }
@@ -91,6 +92,7 @@ func NewApp(
 	blacklistHandler *handlers.BlacklistHandler,
 	apiCredentialHandler *handlers.ApiCredentialHandler,
 	authMiddleware *middleware.AuthMiddleware,
+	permissionMiddleware *middleware.PermissionMiddleware,
 	blacklistAuthMiddleware *middleware.BlacklistAuthMiddleware,
 	blacklistLogMiddleware *middleware.BlacklistLogMiddleware,
 ) *App {
@@ -106,6 +108,7 @@ func NewApp(
 		BlacklistHandler:        blacklistHandler,
 		ApiCredentialHandler:    apiCredentialHandler,
 		AuthMiddleware:          authMiddleware,
+		PermissionMiddleware:    permissionMiddleware,
 		BlacklistAuthMiddleware: blacklistAuthMiddleware,
 		BlacklistLogMiddleware:  blacklistLogMiddleware,
 	}

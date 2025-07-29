@@ -4,9 +4,11 @@ package services
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/varluffy/shield/internal/dto"
 	"github.com/varluffy/shield/internal/models"
+	"github.com/varluffy/shield/internal/repositories"
 	"github.com/varluffy/shield/pkg/logger"
 	"go.uber.org/zap"
 )
@@ -27,15 +29,21 @@ type FieldPermissionService interface {
 
 // fieldPermissionService 字段权限服务实现
 type fieldPermissionService struct {
-	// 这里暂时没有repository依赖，因为还没有创建相应的repository
-	// 在实际实现中，需要注入FieldPermissionRepository
-	logger *logger.Logger
+	fieldPermissionRepo repositories.FieldPermissionRepository
+	userRepo            repositories.UserRepository
+	logger              *logger.Logger
 }
 
 // NewFieldPermissionService 创建字段权限服务
-func NewFieldPermissionService(logger *logger.Logger) FieldPermissionService {
+func NewFieldPermissionService(
+	fieldPermissionRepo repositories.FieldPermissionRepository,
+	userRepo repositories.UserRepository,
+	logger *logger.Logger,
+) FieldPermissionService {
 	return &fieldPermissionService{
-		logger: logger,
+		fieldPermissionRepo: fieldPermissionRepo,
+		userRepo:            userRepo,  
+		logger:              logger,
 	}
 }
 
@@ -44,13 +52,35 @@ func (s *fieldPermissionService) GetTableFields(ctx context.Context, tableName s
 	s.logger.DebugWithTrace(ctx, "Getting table fields",
 		zap.String("table_name", tableName))
 
-	// TODO: 暂时返回模拟数据，等待Repository实现
-	var fields []models.FieldPermission
+	// 从数据库获取字段配置
+	fields, err := s.fieldPermissionRepo.GetFieldPermissions(ctx, tableName)
+	if err != nil {
+		s.logger.ErrorWithTrace(ctx, "Failed to get table fields from repository",
+			zap.String("table_name", tableName),
+			zap.Error(err))
+		return nil, fmt.Errorf("failed to get table fields: %w", err)
+	}
 
-	// 根据表名返回不同的字段配置
+	// 如果数据库中没有配置，返回默认配置
+	if len(fields) == 0 {
+		fields = s.getDefaultFieldPermissions(tableName)
+		s.logger.WarnWithTrace(ctx, "No field permissions found in database, using default",
+			zap.String("table_name", tableName),
+			zap.Int("default_count", len(fields)))
+	}
+
+	s.logger.DebugWithTrace(ctx, "Retrieved table fields",
+		zap.String("table_name", tableName),
+		zap.Int("field_count", len(fields)))
+
+	return fields, nil
+}
+
+// getDefaultFieldPermissions 获取默认字段权限配置（当数据库中没有配置时使用）
+func (s *fieldPermissionService) getDefaultFieldPermissions(tableName string) []models.FieldPermission {
 	switch tableName {
 	case "users":
-		fields = []models.FieldPermission{
+		return []models.FieldPermission{
 			{
 				EntityTable:  "users",
 				FieldName:    "name",
@@ -93,7 +123,7 @@ func (s *fieldPermissionService) GetTableFields(ctx context.Context, tableName s
 			},
 		}
 	case "candidates":
-		fields = []models.FieldPermission{
+		return []models.FieldPermission{
 			{
 				EntityTable:  "candidates",
 				FieldName:    "name",
@@ -126,14 +156,8 @@ func (s *fieldPermissionService) GetTableFields(ctx context.Context, tableName s
 			},
 		}
 	default:
-		fields = []models.FieldPermission{} // 空数组
+		return []models.FieldPermission{}
 	}
-
-	s.logger.DebugWithTrace(ctx, "Retrieved table fields",
-		zap.String("table_name", tableName),
-		zap.Int("field_count", len(fields)))
-
-	return fields, nil
 }
 
 // GetRoleFieldPermissions 获取角色的字段权限
@@ -142,37 +166,14 @@ func (s *fieldPermissionService) GetRoleFieldPermissions(ctx context.Context, ro
 		zap.Uint64("role_id", roleID),
 		zap.String("table_name", tableName))
 
-	// TODO: 暂时返回模拟数据，等待Repository实现
-	var permissions []models.RoleFieldPermission
-
-	// 模拟一些权限数据
-	if roleID == 1 && tableName == "users" {
-		permissions = []models.RoleFieldPermission{
-			{
-				RoleID:         roleID,
-				EntityTable:    "users",
-				FieldName:      "name",
-				PermissionType: models.FieldPermissionDefault,
-			},
-			{
-				RoleID:         roleID,
-				EntityTable:    "users",
-				FieldName:      "email",
-				PermissionType: models.FieldPermissionDefault,
-			},
-			{
-				RoleID:         roleID,
-				EntityTable:    "users",
-				FieldName:      "phone",
-				PermissionType: models.FieldPermissionReadonly,
-			},
-			{
-				RoleID:         roleID,
-				EntityTable:    "users",
-				FieldName:      "salary",
-				PermissionType: models.FieldPermissionHidden,
-			},
-		}
+	// 从数据库获取角色字段权限
+	permissions, err := s.fieldPermissionRepo.GetRoleFieldPermissions(ctx, roleID, tableName)
+	if err != nil {
+		s.logger.ErrorWithTrace(ctx, "Failed to get role field permissions from repository",
+			zap.Uint64("role_id", roleID),
+			zap.String("table_name", tableName),
+			zap.Error(err))
+		return nil, fmt.Errorf("failed to get role field permissions: %w", err)
 	}
 
 	s.logger.DebugWithTrace(ctx, "Retrieved role field permissions",
@@ -190,10 +191,6 @@ func (s *fieldPermissionService) UpdateRoleFieldPermissions(ctx context.Context,
 		zap.String("table_name", tableName),
 		zap.Int("permission_count", len(permissions)))
 
-	// TODO: 这里应该调用Repository来更新数据库
-	// 1. 删除现有的角色字段权限
-	// 2. 插入新的权限配置
-
 	// 验证权限类型
 	for _, perm := range permissions {
 		if !isValidPermissionType(perm.PermissionType) {
@@ -201,7 +198,17 @@ func (s *fieldPermissionService) UpdateRoleFieldPermissions(ctx context.Context,
 		}
 	}
 
-	s.logger.InfoWithTrace(ctx, "Role field permissions updated successfully (mocked)",
+	// 调用Repository更新权限
+	err := s.fieldPermissionRepo.UpdateRoleFieldPermissions(ctx, roleID, tableName, permissions)
+	if err != nil {
+		s.logger.ErrorWithTrace(ctx, "Failed to update role field permissions in repository",
+			zap.Uint64("role_id", roleID),
+			zap.String("table_name", tableName),
+			zap.Error(err))
+		return fmt.Errorf("failed to update role field permissions: %w", err)
+	}
+
+	s.logger.InfoWithTrace(ctx, "Role field permissions updated successfully",
 		zap.Uint64("role_id", roleID),
 		zap.String("table_name", tableName),
 		zap.Int("permission_count", len(permissions)))
@@ -216,18 +223,26 @@ func (s *fieldPermissionService) GetUserFieldPermissions(ctx context.Context, us
 		zap.String("tenant_id", tenantID),
 		zap.String("table_name", tableName))
 
-	// TODO: 这里应该：
-	// 1. 获取用户的角色
-	// 2. 获取角色的字段权限
-	// 3. 合并权限（如果有多个角色，取最高权限）
+	// 转换ID为uint64
+	userIDUint, err := strconv.ParseUint(userID, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID: %s", userID)
+	}
 
-	// 暂时返回模拟数据
-	permissions := map[string]string{
-		"name":               models.FieldPermissionDefault,
-		"email":              models.FieldPermissionDefault,
-		"phone":              models.FieldPermissionReadonly,
-		"salary":             models.FieldPermissionHidden,
-		"salary_expectation": models.FieldPermissionReadonly,
+	tenantIDUint, err := strconv.ParseUint(tenantID, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid tenant ID: %s", tenantID)
+	}
+
+	// 从Repository获取用户字段权限
+	permissions, err := s.fieldPermissionRepo.GetUserFieldPermissions(ctx, userIDUint, tenantIDUint, tableName)
+	if err != nil {
+		s.logger.ErrorWithTrace(ctx, "Failed to get user field permissions from repository",
+			zap.String("user_id", userID),
+			zap.String("tenant_id", tenantID),
+			zap.String("table_name", tableName),
+			zap.Error(err))
+		return nil, fmt.Errorf("failed to get user field permissions: %w", err)
 	}
 
 	s.logger.DebugWithTrace(ctx, "Retrieved user field permissions",
@@ -244,18 +259,38 @@ func (s *fieldPermissionService) InitializeFieldPermissions(ctx context.Context,
 		zap.String("table_name", tableName),
 		zap.Int("field_count", len(fields)))
 
-	// TODO: 这里应该调用Repository来初始化字段权限配置
-	// 1. 检查字段是否已存在
-	// 2. 创建新的字段配置
-	// 3. 更新现有字段配置
-
+	// 验证字段配置
 	for _, field := range fields {
 		if !isValidPermissionType(field.DefaultValue) {
 			return fmt.Errorf("invalid default permission type for field %s: %s", field.FieldName, field.DefaultValue)
 		}
 	}
 
-	s.logger.InfoWithTrace(ctx, "Field permissions initialized successfully (mocked)",
+	// 转换为模型
+	var permissions []models.FieldPermission
+	for _, field := range fields {
+		permissions = append(permissions, models.FieldPermission{
+			EntityTable:  tableName,
+			FieldName:    field.FieldName,
+			FieldLabel:   field.FieldLabel,
+			FieldType:    field.FieldType,
+			DefaultValue: field.DefaultValue,
+			Description:  field.Description,
+			SortOrder:    field.SortOrder,
+			IsActive:     true,
+		})
+	}
+
+	// 批量创建字段权限配置
+	err := s.fieldPermissionRepo.CreateFieldPermissions(ctx, permissions)
+	if err != nil {
+		s.logger.ErrorWithTrace(ctx, "Failed to initialize field permissions in repository",
+			zap.String("table_name", tableName),
+			zap.Error(err))
+		return fmt.Errorf("failed to initialize field permissions: %w", err)
+	}
+
+	s.logger.InfoWithTrace(ctx, "Field permissions initialized successfully",
 		zap.String("table_name", tableName),
 		zap.Int("field_count", len(fields)))
 

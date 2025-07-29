@@ -34,6 +34,7 @@ type TestComponents struct {
 	PermissionRepo      repositories.PermissionRepository
 	TenantRepo          repositories.TenantRepository
 	PermissionAuditRepo repositories.PermissionAuditRepository
+	BlacklistRepo       repositories.BlacklistRepository
 
 	// Services
 	UserService            services.UserService
@@ -42,6 +43,7 @@ type TestComponents struct {
 	FieldPermissionService services.FieldPermissionService
 	PermissionCacheService services.PermissionCacheService
 	PermissionAuditService services.PermissionAuditService
+	BlacklistService       services.BlacklistService
 
 	// Handlers
 	UserHandler            *handlers.UserHandler
@@ -72,7 +74,7 @@ func NewTestConfig() *config.Config {
 			Port:     3306,
 			User:     "root",
 			Password: "123456",
-			Name:     "shield_test",
+			Name:     "shield", // Use main database for now
 		},
 		Server: config.ServerConfig{
 			Host: "localhost",
@@ -148,6 +150,7 @@ func NewTestComponents(db *gorm.DB, testLogger *logger.Logger) *TestComponents {
 	permissionRepo := repositories.NewPermissionRepository(db, txManager, testLogger)
 	tenantRepo := repositories.NewTenantRepository(db, txManager, testLogger)
 	permissionAuditRepo := repositories.NewPermissionAuditRepository(db, txManager, testLogger)
+	blacklistRepo := repositories.NewBlacklistRepository(db)
 
 	// 创建Services
 	var permissionCacheService services.PermissionCacheService
@@ -163,8 +166,10 @@ func NewTestComponents(db *gorm.DB, testLogger *logger.Logger) *TestComponents {
 	testConfig := NewTestConfig()
 	userService := services.NewUserService(userRepo, testLogger, txManager, jwtService, captchaService, testConfig)
 	roleService := services.NewRoleService(roleRepo, permissionRepo, testLogger)
-	fieldPermissionService := services.NewFieldPermissionService(testLogger)
+	fieldPermissionRepo := repositories.NewFieldPermissionRepository(db, txManager, testLogger)
+	fieldPermissionService := services.NewFieldPermissionService(fieldPermissionRepo, userRepo, testLogger)
 	permissionAuditService := services.NewPermissionAuditService(permissionAuditRepo, testLogger)
+	blacklistService := services.NewBlacklistService(blacklistRepo, redisCache, testLogger)
 
 	// 创建ResponseWriter
 	responseWriter := response.NewResponseWriter(testLogger)
@@ -186,6 +191,7 @@ func NewTestComponents(db *gorm.DB, testLogger *logger.Logger) *TestComponents {
 		PermissionRepo:      permissionRepo,
 		TenantRepo:          tenantRepo,
 		PermissionAuditRepo: permissionAuditRepo,
+		BlacklistRepo:       blacklistRepo,
 
 		// Services
 		UserService:            userService,
@@ -194,6 +200,7 @@ func NewTestComponents(db *gorm.DB, testLogger *logger.Logger) *TestComponents {
 		FieldPermissionService: fieldPermissionService,
 		PermissionCacheService: permissionCacheService,
 		PermissionAuditService: permissionAuditService,
+		BlacklistService:       blacklistService,
 
 		// Handlers
 		UserHandler:            userHandler,

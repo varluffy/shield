@@ -175,36 +175,3 @@ type UserMenuPermissionsResponse struct {
 	Menus []MenuItemResponse `json:"menus"`
 }
 
-// UserFieldPermissionsResponse 用户字段权限响应
-type UserFieldPermissionsResponse struct {
-	TableName string        `json:"table_name"`
-	Fields    []interface{} `json:"fields"`
-}
-
-// TableFieldsResponse 表字段响应
-type TableFieldsResponse struct {
-	TableName string        `json:"table_name"`
-	Fields    []interface{} `json:"fields"`
-}
-
-// RoleFieldPermissionsResponse 角色字段权限响应
-type RoleFieldPermissionsResponse struct {
-	RoleID           uint64        `json:"role_id"`
-	TableName        string        `json:"table_name"`
-	FieldPermissions []interface{} `json:"field_permissions"`
-}
-
-// UpdateFieldPermissionsResponse 更新字段权限响应
-type UpdateFieldPermissionsResponse struct {
-	Message         string `json:"message"`
-	RoleID          uint64 `json:"role_id"`
-	TableName       string `json:"table_name"`
-	PermissionCount int    `json:"permission_count"`
-}
-
-// InitializeFieldsResponse 初始化字段响应
-type InitializeFieldsResponse struct {
-	Message    string `json:"message"`
-	TableName  string `json:"table_name"`
-	FieldCount int    `json:"field_count"`
-}

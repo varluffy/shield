@@ -13,7 +13,8 @@ This file provides specialized guidance to Claude Code (claude.ai/code) when wor
 
 **Project Type**: Go microservices framework with clean architecture  
 **Key Technologies**: Gin, Wire, GORM, MySQL, Redis, OpenTelemetry  
-**Documentation**: See [docs/development/](docs/development/) for comprehensive guides
+**Documentation**: See [docs/development/](docs/development/) for comprehensive guides  
+**字段权限系统**: See [docs/development/field-permissions-guide.md](docs/development/field-permissions-guide.md) for field permission system
 
 ## 🤖 AI Development Patterns
 
@@ -35,6 +36,7 @@ make stop-service     # Clean stop when switching contexts
 # 🧪 Testing Patterns (AI-Optimized)
 go test -v ./test/ -run TestCaptcha           # Test specific features
 go test -v ./test/ -run TestPermission        # Permission system tests
+go test -v ./test/ -run TestFieldPermission   # Field permission tests
 go test -v -cover ./internal/services/        # Service layer coverage
 make wire && make test                # Comprehensive validation
 ```
@@ -414,6 +416,7 @@ func TestNewServiceUnitTests(t *testing.T) {
 - `make wire && make test` - Full validation cycle (essential after code changes)
 - `scripts/test_permissions.sh` - Permission system validation
 - `go test -v ./test/ -run TestCaptcha` - Feature-specific testing
+- `go test -v ./test/ -run TestFieldPermissionServiceUnitTests` - Field permission unit tests
 
 ## 📚 Documentation References
 
@@ -422,6 +425,7 @@ For comprehensive guidance, see the structured documentation:
 - **[Getting Started](docs/development/getting-started.md)** - Project setup and quick start
 - **[Architecture Guide](docs/development/architecture.md)** - Detailed architecture rules and patterns  
 - **[API Development](docs/development/api-guide.md)** - API design and implementation standards
+- **[Field Permissions Guide](docs/development/field-permissions-guide.md)** - Field-level permission system guide 🛡️
 - **[Testing Cheatsheet](docs/development/testing-cheatsheet.md)** - Quick reference for testing commands ⚡
 - **[Testing Guide](docs/development/testing-guide.md)** - Testing strategies and best practices
 - **[Service Testing Guide](docs/development/service-testing-guide.md)** - Service layer unit testing patterns ✨
