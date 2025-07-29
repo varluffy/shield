@@ -33,6 +33,9 @@ database:
   conn_max_idle_time: 1800s
   log_level: "info"
   slow_query_threshold: "200ms"
+  # 迁移控制配置 - 开发环境启用自动迁移
+  enable_auto_migrate: true
+  migration_mode: "auto"
 
 log:
   level: "debug"

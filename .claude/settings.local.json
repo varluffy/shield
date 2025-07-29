@@ -17,7 +17,8 @@
       "mcp__dbhub-mysql-npx__execute_sql",
       "Bash(chmod:*)",
       "Bash(go run:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": []
   },

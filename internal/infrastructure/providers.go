@@ -3,6 +3,8 @@
 package infrastructure
 
 import (
+	"fmt"
+	
 	"github.com/google/wire"
 	"github.com/varluffy/shield/internal/config"
 	"github.com/varluffy/shield/internal/database"
@@ -76,12 +78,43 @@ func ProvideDatabase(cfg *config.Config, logger *logger.Logger) (*gorm.DB, error
 		return nil, err
 	}
 
-	// 自动迁移
-	if err := database.AutoMigrate(db); err != nil {
-		return nil, err
+	// 根据配置决定是否执行自动迁移
+	if shouldRunAutoMigrate(cfg) {
+		logger.Logger.Info("Running database auto migration", 
+			zap.String("environment", cfg.App.Environment),
+			zap.String("migration_mode", cfg.Database.MigrationMode))
+		
+		if err := database.AutoMigrate(db); err != nil {
+			return nil, fmt.Errorf("failed to run auto migration: %w", err)
+		}
+		
+		logger.Logger.Info("Database auto migration completed successfully")
+	} else {
+		logger.Logger.Info("Database auto migration disabled", 
+			zap.String("environment", cfg.App.Environment),
+			zap.String("migration_mode", cfg.Database.MigrationMode))
 	}
 
 	return db, nil
+}
+
+// shouldRunAutoMigrate 判断是否应该运行自动迁移
+func shouldRunAutoMigrate(cfg *config.Config) bool {
+	// 如果明确禁用，则不运行
+	if !cfg.Database.EnableAutoMigrate {
+		return false
+	}
+	
+	// 根据迁移模式判断
+	switch cfg.Database.MigrationMode {
+	case "auto":
+		return true
+	case "manual", "disabled":
+		return false
+	default:
+		// 默认情况下，只在开发环境运行
+		return cfg.App.Environment == "development"
+	}
 }
 
 // ProvideRedis 提供Redis客户端

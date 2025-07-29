@@ -65,6 +65,10 @@ type DatabaseConfig struct {
 	ConnMaxIdleTime    time.Duration `mapstructure:"conn_max_idle_time"`
 	LogLevel           string        `mapstructure:"log_level"`
 	SlowQueryThreshold time.Duration `mapstructure:"slow_query_threshold"`
+	
+	// 迁移控制配置
+	EnableAutoMigrate bool   `mapstructure:"enable_auto_migrate"`
+	MigrationMode     string `mapstructure:"migration_mode"` // "auto", "manual", "disabled"
 }
 
 // RedisConfig Redis配置

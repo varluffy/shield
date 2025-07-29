@@ -17,13 +17,16 @@ database:
   port: 3306
   user: "${DB_USER:root}"
   password: "${DB_PASSWORD}"
-  name: "${DB_NAME:ultrafit}"
+  name: "${DB_NAME:shield}"
   timezone: "Asia/Shanghai"
   max_open_conns: 20
   max_idle_conns: 10
   conn_max_lifetime: "1h"
   log_level: "warn"
   slow_query_threshold: "100ms"
+  # 迁移控制配置 - 生产环境禁用自动迁移
+  enable_auto_migrate: false
+  migration_mode: "disabled"
 
 log:
   level: "info"

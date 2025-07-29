@@ -88,10 +88,32 @@ docs:
 # 数据库管理
 # ===============================
 
-# 数据库迁移
+# 数据库迁移 (原有GORM方式)
 migrate:
 	@echo "运行数据库迁移..."
 	$(GOCMD) run ./cmd/migrate -config=$(CONFIG_DEV)
+
+# 版本化迁移管理
+migrate-up:
+	@echo "执行版本化迁移..."
+	$(GOCMD) run ./cmd/migrate/*.go -config=$(CONFIG_DEV) -action=migrate-up
+
+migrate-down:
+	@echo "回滚最后一个迁移批次..."
+	$(GOCMD) run ./cmd/migrate/*.go -config=$(CONFIG_DEV) -action=migrate-down
+
+migrate-status:
+	@echo "查看迁移状态..."
+	$(GOCMD) run ./cmd/migrate/*.go -config=$(CONFIG_DEV) -action=migrate-status
+
+create-migration:
+	@if [ -z "$(name)" ]; then \
+		echo "Error: migration name is required"; \
+		echo "Usage: make create-migration name=migration_name"; \
+		exit 1; \
+	fi
+	@echo "创建迁移文件: $(name)"
+	@$(GOCMD) run ./cmd/migrate/*.go -config=$(CONFIG_DEV) -action=create-migration -migration-name=$(name)
 
 # 初始化项目（首次使用）
 init: deps wire docs migrate
@@ -124,6 +146,12 @@ help:
 	@echo "  make test         运行测试"
 	@echo "  make build        构建项目"
 	@echo "  make prod         生产环境构建"
+	@echo ""
+	@echo "数据库迁移："
+	@echo "  make migrate-up           执行版本化迁移"
+	@echo "  make migrate-down         回滚最后一个批次"
+	@echo "  make migrate-status       查看迁移状态"
+	@echo "  make create-migration name=名称  创建新迁移文件"
 	@echo ""
 	@echo "数据库管理："
 	@echo "  make migrate      运行数据库迁移"

@@ -3,7 +3,7 @@
 This file provides specialized guidance to Claude Code (claude.ai/code) when working with code in this repository, focusing on AI-assisted development workflows and patterns.
 
 ## 🚨 CRITICAL DATABASE RULE 🚨
-**NEVER USE DIRECT MySQL COMMANDS - ONLY USE MCP TOOL**
+**NEVER USE DIRECT MySQL COMMANDS - ONLY USE MCP TOOL dbhub-mysql-npx **
 - ❌ `mysql -u root -p shield` ← FORBIDDEN
 - ❌ `mysql < file.sql` ← FORBIDDEN  
 - ❌ `mysqldump shield` ← FORBIDDEN

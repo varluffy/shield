@@ -32,7 +32,7 @@ func main() {
 	var tenantID string
 
 	flag.StringVar(&configPath, "config", "", "Path to config file")
-	flag.StringVar(&action, "action", "migrate", "Action: migrate, create-user, update-user, list-users, create-test-users, clean-test-users, list-test-users")
+	flag.StringVar(&action, "action", "migrate", "Action: migrate, migrate-up, migrate-down, migrate-status, create-migration, create-user, update-user, list-users, create-test-users, clean-test-users, list-test-users")
 
 	// 迁移参数
 	flag.BoolVar(&clean, "clean", false, "Clean all tables before migration")
@@ -46,6 +46,10 @@ func main() {
 	flag.StringVar(&name, "name", "", "User name")
 	flag.StringVar(&roleCode, "role", "system_admin", "Role code (system_admin, tenant_admin)")
 	flag.StringVar(&tenantID, "tenant", "", "Tenant ID (optional, uses default tenant if not specified)")
+
+	// 迁移管理参数
+	var migrationName string
+	flag.StringVar(&migrationName, "migration-name", "", "Migration name for create-migration action")
 
 	flag.Parse()
 
@@ -134,6 +138,38 @@ func main() {
 		}
 
 		log.Println("Database migration completed successfully")
+
+	case "migrate-up":
+		// 执行版本化迁移
+		runner := NewMigrationRunner(db, appLogger.Logger)
+		if err := runner.RunMigrations(); err != nil {
+			log.Fatalf("Failed to run migrations: %v", err)
+		}
+
+	case "migrate-down":
+		// 回滚最后一个批次
+		runner := NewMigrationRunner(db, appLogger.Logger)
+		if err := runner.RollbackLastBatch(); err != nil {
+			log.Fatalf("Failed to rollback migrations: %v", err)
+		}
+
+	case "migrate-status":
+		// 显示迁移状态
+		runner := NewMigrationRunner(db, appLogger.Logger)
+		if err := runner.ShowMigrationStatus(); err != nil {
+			log.Fatalf("Failed to show migration status: %v", err)
+		}
+
+	case "create-migration":
+		// 创建新的迁移文件
+		if migrationName == "" {
+			fmt.Println("Usage: -action=create-migration -migration-name=migration_name")
+			os.Exit(1)
+		}
+		runner := NewMigrationRunner(db, appLogger.Logger)
+		if err := runner.CreateMigrationFile(migrationName); err != nil {
+			log.Fatalf("Failed to create migration file: %v", err)
+		}
 
 	case "create-user":
 		if email == "" || password == "" || name == "" {
