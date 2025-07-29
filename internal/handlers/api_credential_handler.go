@@ -48,7 +48,7 @@ func NewApiCredentialHandler(
 // @Failure 401 {object} response.Response
 // @Failure 403 {object} response.Response
 // @Failure 500 {object} response.Response
-// @Router /api/v1/admin/api-credentials [post]
+// @Router /admin/api-credentials [post]
 func (h *ApiCredentialHandler) CreateApiCredential(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -116,7 +116,7 @@ func (h *ApiCredentialHandler) CreateApiCredential(c *gin.Context) {
 // @Failure 401 {object} response.Response
 // @Failure 403 {object} response.Response
 // @Failure 500 {object} response.Response
-// @Router /api/v1/admin/api-credentials [get]
+// @Router /admin/api-credentials [get]
 func (h *ApiCredentialHandler) GetApiCredentials(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -163,7 +163,7 @@ func (h *ApiCredentialHandler) GetApiCredentials(c *gin.Context) {
 // @Failure 403 {object} response.Response
 // @Failure 404 {object} response.Response
 // @Failure 500 {object} response.Response
-// @Router /api/v1/admin/api-credentials/{id} [get]
+// @Router /admin/api-credentials/{id} [get]
 func (h *ApiCredentialHandler) GetApiCredential(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -211,7 +211,7 @@ func (h *ApiCredentialHandler) GetApiCredential(c *gin.Context) {
 // @Failure 403 {object} response.Response
 // @Failure 404 {object} response.Response
 // @Failure 500 {object} response.Response
-// @Router /api/v1/admin/api-credentials/{id} [put]
+// @Router /admin/api-credentials/{id} [put]
 func (h *ApiCredentialHandler) UpdateApiCredential(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -276,7 +276,7 @@ func (h *ApiCredentialHandler) UpdateApiCredential(c *gin.Context) {
 // @Failure 403 {object} response.Response
 // @Failure 404 {object} response.Response
 // @Failure 500 {object} response.Response
-// @Router /api/v1/admin/api-credentials/{id}/status [put]
+// @Router /admin/api-credentials/{id}/status [put]
 func (h *ApiCredentialHandler) UpdateApiCredentialStatus(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -330,7 +330,7 @@ func (h *ApiCredentialHandler) UpdateApiCredentialStatus(c *gin.Context) {
 // @Failure 403 {object} response.Response
 // @Failure 404 {object} response.Response
 // @Failure 500 {object} response.Response
-// @Router /api/v1/admin/api-credentials/{id} [delete]
+// @Router /admin/api-credentials/{id} [delete]
 func (h *ApiCredentialHandler) DeleteApiCredential(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -374,7 +374,7 @@ func (h *ApiCredentialHandler) DeleteApiCredential(c *gin.Context) {
 // @Failure 403 {object} response.Response
 // @Failure 404 {object} response.Response
 // @Failure 500 {object} response.Response
-// @Router /api/v1/admin/api-credentials/{id}/regenerate-secret [post]
+// @Router /admin/api-credentials/{id}/regenerate-secret [post]
 func (h *ApiCredentialHandler) RegenerateApiSecret(c *gin.Context) {
 	ctx := c.Request.Context()
 

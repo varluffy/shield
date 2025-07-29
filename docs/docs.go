@@ -23,14 +23,14 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/admin/users": {
-            "post": {
+        "/admin/api-credentials": {
+            "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "创建新的用户账号，需要管理员权限",
+                "description": "获取租户的所有API密钥",
                 "consumes": [
                     "application/json"
                 ],
@@ -38,23 +38,318 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "admin"
+                    "API密钥管理"
                 ],
-                "summary": "创建用户账号（管理员权限）",
+                "summary": "获取API密钥列表",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.ApiCredentialInfo"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "创建新的黑名单API密钥",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "API密钥管理"
+                ],
+                "summary": "创建API密钥",
                 "parameters": [
                     {
-                        "description": "用户信息",
-                        "name": "user",
+                        "description": "创建请求",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.CreateUserRequest"
+                            "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.CreateApiCredentialRequest"
                         }
                     }
                 ],
                 "responses": {
                     "201": {
                         "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.CreateApiCredentialResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/api-credentials/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "获取指定的API密钥详细信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "API密钥管理"
+                ],
+                "summary": "获取API密钥详情",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "API密钥ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.ApiCredentialInfo"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "更新API密钥的配置信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "API密钥管理"
+                ],
+                "summary": "更新API密钥",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "API密钥ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "更新请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.UpdateApiCredentialRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.ApiCredentialInfo"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "删除指定的API密钥",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "API密钥管理"
+                ],
+                "summary": "删除API密钥",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "API密钥ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
                         }
@@ -66,13 +361,25 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "未授权",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
                         }
                     },
                     "403": {
-                        "description": "权限不足",
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
                         }
@@ -80,7 +387,162 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/admin/blacklist": {
+        "/admin/api-credentials/{id}/regenerate-secret": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "重新生成API密钥的Secret",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "API密钥管理"
+                ],
+                "summary": "重新生成API Secret",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "API密钥ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.RegenerateSecretResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/api-credentials/{id}/status": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "启用/禁用/暂停API密钥",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "API密钥管理"
+                ],
+                "summary": "更新API密钥状态",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "API密钥ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "状态更新请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.UpdateStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/blacklist": {
             "get": {
                 "security": [
                     {
@@ -233,7 +695,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/admin/blacklist/import": {
+        "/admin/blacklist/import": {
             "post": {
                 "security": [
                     {
@@ -308,7 +770,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/admin/blacklist/stats": {
+        "/admin/blacklist/stats": {
             "get": {
                 "security": [
                     {
@@ -381,7 +843,110 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/admin/blacklist/{id}": {
+        "/admin/blacklist/stats/minutes": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "获取最近N分钟的查询统计数据，包括QPS、命中率等",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "黑名单管理"
+                ],
+                "summary": "获取分钟级查询统计",
+                "parameters": [
+                    {
+                        "maximum": 60,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 5,
+                        "description": "统计分钟数",
+                        "name": "minutes",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "统计信息",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.MinuteStatsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/blacklist/sync": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "将租户的黑名单数据同步到Redis缓存",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "黑名单管理"
+                ],
+                "summary": "同步黑名单到Redis",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/blacklist/{id}": {
             "delete": {
                 "security": [
                     {
@@ -448,9 +1013,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/blacklist/check": {
+        "/admin/users": {
             "post": {
-                "description": "检查手机号MD5是否在黑名单中",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "创建新的用户账号，需要管理员权限",
                 "consumes": [
                     "application/json"
                 ],
@@ -458,65 +1028,25 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "黑名单查询"
+                    "admin"
                 ],
-                "summary": "检查黑名单",
+                "summary": "创建用户账号（管理员权限）",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "API密钥",
-                        "name": "X-API-Key",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "时间戳",
-                        "name": "X-Timestamp",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "随机数",
-                        "name": "X-Nonce",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "HMAC签名",
-                        "name": "X-Signature",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "description": "查询请求",
-                        "name": "request",
+                        "description": "用户信息",
+                        "name": "user",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.CheckBlacklistRequest"
+                            "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.CreateUserRequest"
                         }
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "201": {
+                        "description": "Created",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.CheckBlacklistResponse"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
                         }
                     },
                     "400": {
@@ -526,19 +1056,13 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "未授权",
                         "schema": {
                             "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
                         }
                     },
-                    "429": {
-                        "description": "Too Many Requests",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
+                    "403": {
+                        "description": "权限不足",
                         "schema": {
                             "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
                         }
@@ -719,6 +1243,202 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/blacklist/check": {
+            "post": {
+                "description": "检查手机号MD5是否在黑名单中",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "黑名单查询"
+                ],
+                "summary": "检查黑名单",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "API密钥",
+                        "name": "X-API-Key",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "时间戳",
+                        "name": "X-Timestamp",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "随机数",
+                        "name": "X-Nonce",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "HMAC签名",
+                        "name": "X-Signature",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "查询请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.CheckBlacklistRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.CheckBlacklistResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/blacklist/check-batch": {
+            "post": {
+                "description": "批量检查手机号MD5是否在黑名单中",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "黑名单查询"
+                ],
+                "summary": "批量检查黑名单",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "API密钥",
+                        "name": "X-API-Key",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "时间戳",
+                        "name": "X-Timestamp",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "随机数",
+                        "name": "X-Nonce",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "HMAC签名",
+                        "name": "X-Signature",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "批量查询请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.CheckBlacklistBatchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.CheckBlacklistBatchResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
                         }
@@ -2123,6 +2843,55 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "github_com_varluffy_shield_internal_dto.ApiCredentialInfo": {
+            "type": "object",
+            "properties": {
+                "api_key": {
+                    "type": "string",
+                    "example": "ak_1234567890abcdef"
+                },
+                "created_at": {
+                    "type": "string",
+                    "example": "2024-01-01T10:00:00Z"
+                },
+                "description": {
+                    "type": "string",
+                    "example": "用于测试的API密钥"
+                },
+                "expires_at": {
+                    "type": "string",
+                    "example": "2024-12-31T23:59:59Z"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "last_used_at": {
+                    "type": "string",
+                    "example": "2024-01-01T10:00:00Z"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "测试密钥"
+                },
+                "rate_limit": {
+                    "type": "integer",
+                    "example": 1000
+                },
+                "status": {
+                    "type": "string",
+                    "example": "active"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2024-01-01T10:00:00Z"
+                },
+                "uuid": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                }
+            }
+        },
         "github_com_varluffy_shield_internal_dto.AssignPermissionsRequest": {
             "type": "object",
             "required": [
@@ -2255,6 +3024,33 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_varluffy_shield_internal_dto.CheckBlacklistBatchRequest": {
+            "type": "object",
+            "required": [
+                "phone_md5_list"
+            ],
+            "properties": {
+                "phone_md5_list": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "github_com_varluffy_shield_internal_dto.CheckBlacklistBatchResponse": {
+            "type": "object",
+            "properties": {
+                "results": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.CheckBlacklistResponse"
+                    }
+                }
+            }
+        },
         "github_com_varluffy_shield_internal_dto.CheckBlacklistRequest": {
             "type": "object",
             "required": [
@@ -2277,6 +3073,90 @@ const docTemplate = `{
                 "phone_md5": {
                     "type": "string",
                     "example": "5d41402abc4b2a76b9719d911017c592"
+                }
+            }
+        },
+        "github_com_varluffy_shield_internal_dto.CreateApiCredentialRequest": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "example": "用于测试的API密钥"
+                },
+                "expires_at": {
+                    "type": "string",
+                    "example": "2024-12-31T23:59:59Z"
+                },
+                "ip_whitelist": {
+                    "type": "string",
+                    "example": "192.168.1.0/24,10.0.0.1"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "example": "测试密钥"
+                },
+                "rate_limit": {
+                    "type": "integer",
+                    "maximum": 10000,
+                    "minimum": 1,
+                    "example": 1000
+                }
+            }
+        },
+        "github_com_varluffy_shield_internal_dto.CreateApiCredentialResponse": {
+            "type": "object",
+            "properties": {
+                "api_key": {
+                    "type": "string",
+                    "example": "ak_1234567890abcdef"
+                },
+                "api_secret": {
+                    "type": "string",
+                    "example": "abc123..."
+                },
+                "created_at": {
+                    "type": "string",
+                    "example": "2024-01-01T10:00:00Z"
+                },
+                "description": {
+                    "type": "string",
+                    "example": "用于测试的API密钥"
+                },
+                "expires_at": {
+                    "type": "string",
+                    "example": "2024-12-31T23:59:59Z"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "last_used_at": {
+                    "type": "string",
+                    "example": "2024-01-01T10:00:00Z"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "测试密钥"
+                },
+                "rate_limit": {
+                    "type": "integer",
+                    "example": 1000
+                },
+                "status": {
+                    "type": "string",
+                    "example": "active"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2024-01-01T10:00:00Z"
+                },
+                "uuid": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
                 }
             }
         },
@@ -2445,6 +3325,58 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_varluffy_shield_internal_dto.MinutePoint": {
+            "type": "object",
+            "properties": {
+                "avg_latency_ms": {
+                    "type": "number"
+                },
+                "hit_count": {
+                    "type": "integer"
+                },
+                "minute": {
+                    "type": "string"
+                },
+                "qps": {
+                    "type": "number"
+                },
+                "total_queries": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_varluffy_shield_internal_dto.MinuteStatsResponse": {
+            "type": "object",
+            "properties": {
+                "avg_latency_ms": {
+                    "type": "number"
+                },
+                "hit_count": {
+                    "type": "integer"
+                },
+                "hit_rate": {
+                    "type": "number"
+                },
+                "minute_data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.MinutePoint"
+                    }
+                },
+                "miss_count": {
+                    "type": "integer"
+                },
+                "qps": {
+                    "type": "number"
+                },
+                "timestamp": {
+                    "type": "string"
+                },
+                "total_queries": {
+                    "type": "integer"
+                }
+            }
+        },
         "github_com_varluffy_shield_internal_dto.PaginationInfo": {
             "type": "object",
             "properties": {
@@ -2502,6 +3434,19 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_varluffy_shield_internal_dto.RegenerateSecretResponse": {
+            "type": "object",
+            "properties": {
+                "api_secret": {
+                    "type": "string",
+                    "example": "abc123..."
+                },
+                "message": {
+                    "type": "string",
+                    "example": "API Secret已重新生成，请妥善保存，此密钥仅显示一次"
+                }
+            }
+        },
         "github_com_varluffy_shield_internal_dto.RegisterRequest": {
             "type": "object",
             "required": [
@@ -2547,6 +3492,37 @@ const docTemplate = `{
                 "password": {
                     "type": "string",
                     "example": "password123"
+                }
+            }
+        },
+        "github_com_varluffy_shield_internal_dto.UpdateApiCredentialRequest": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "example": "用于测试的API密钥"
+                },
+                "expires_at": {
+                    "type": "string",
+                    "example": "2024-12-31T23:59:59Z"
+                },
+                "ip_whitelist": {
+                    "type": "string",
+                    "example": "192.168.1.0/24,10.0.0.1"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "example": "测试密钥"
+                },
+                "rate_limit": {
+                    "type": "integer",
+                    "maximum": 10000,
+                    "minimum": 1,
+                    "example": 1000
                 }
             }
         },
@@ -2598,6 +3574,23 @@ const docTemplate = `{
                 "name": {
                     "type": "string",
                     "example": "管理员"
+                }
+            }
+        },
+        "github_com_varluffy_shield_internal_dto.UpdateStatusRequest": {
+            "type": "object",
+            "required": [
+                "status"
+            ],
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "active",
+                        "inactive",
+                        "suspended"
+                    ],
+                    "example": "active"
                 }
             }
         },

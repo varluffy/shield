@@ -52,7 +52,7 @@ func NewBlacklistHandler(
 // @Failure 401 {object} response.Response
 // @Failure 429 {object} response.Response
 // @Failure 500 {object} response.Response
-// @Router /api/v1/blacklist/check [post]
+// @Router /blacklist/check [post]
 func (h *BlacklistHandler) CheckBlacklist(c *gin.Context) {
 	start := time.Now()
 	ctx := c.Request.Context()
@@ -136,7 +136,7 @@ func (h *BlacklistHandler) CheckBlacklist(c *gin.Context) {
 // @Failure 401 {object} response.Response
 // @Failure 429 {object} response.Response
 // @Failure 500 {object} response.Response
-// @Router /api/v1/blacklist/check-batch [post]
+// @Router /blacklist/check-batch [post]
 func (h *BlacklistHandler) CheckBlacklistBatch(c *gin.Context) {
 	start := time.Now()
 	ctx := c.Request.Context()
@@ -237,7 +237,7 @@ func (h *BlacklistHandler) CheckBlacklistBatch(c *gin.Context) {
 // @Failure 401 {object} response.Response
 // @Failure 403 {object} response.Response
 // @Failure 500 {object} response.Response
-// @Router /api/v1/admin/blacklist [post]
+// @Router /admin/blacklist [post]
 func (h *BlacklistHandler) CreateBlacklist(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -297,7 +297,7 @@ func (h *BlacklistHandler) CreateBlacklist(c *gin.Context) {
 // @Failure 401 {object} response.Response
 // @Failure 403 {object} response.Response
 // @Failure 500 {object} response.Response
-// @Router /api/v1/admin/blacklist/import [post]
+// @Router /admin/blacklist/import [post]
 func (h *BlacklistHandler) BatchImportBlacklist(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -366,7 +366,7 @@ func (h *BlacklistHandler) BatchImportBlacklist(c *gin.Context) {
 // @Failure 401 {object} response.Response
 // @Failure 403 {object} response.Response
 // @Failure 500 {object} response.Response
-// @Router /api/v1/admin/blacklist [get]
+// @Router /admin/blacklist [get]
 func (h *BlacklistHandler) GetBlacklistList(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -438,7 +438,7 @@ func (h *BlacklistHandler) GetBlacklistList(c *gin.Context) {
 // @Failure 403 {object} response.Response
 // @Failure 404 {object} response.Response
 // @Failure 500 {object} response.Response
-// @Router /api/v1/admin/blacklist/{id} [delete]
+// @Router /admin/blacklist/{id} [delete]
 func (h *BlacklistHandler) DeleteBlacklist(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -481,7 +481,7 @@ func (h *BlacklistHandler) DeleteBlacklist(c *gin.Context) {
 // @Failure 401 {object} response.Response
 // @Failure 403 {object} response.Response
 // @Failure 500 {object} response.Response
-// @Router /api/v1/admin/blacklist/stats [get]
+// @Router /admin/blacklist/stats [get]
 func (h *BlacklistHandler) GetQueryStats(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -532,10 +532,10 @@ func (h *BlacklistHandler) GetQueryStats(c *gin.Context) {
 // @Security BearerAuth
 // @Param minutes query int false "统计分钟数" default(5) minimum(1) maximum(60)
 // @Success 200 {object} dto.MinuteStatsResponse "统计信息"
-// @Failure 400 {object} response.ErrorResponse "请求参数错误"
-// @Failure 401 {object} response.ErrorResponse "未授权"
-// @Failure 500 {object} response.ErrorResponse "服务器内部错误"
-// @Router /api/v1/admin/blacklist/stats/minutes [get]
+// @Failure 400 {object} response.Response "请求参数错误"
+// @Failure 401 {object} response.Response "未授权"
+// @Failure 500 {object} response.Response "服务器内部错误"
+// @Router /admin/blacklist/stats/minutes [get]
 func (h *BlacklistHandler) GetMinuteStats(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -604,7 +604,7 @@ func (h *BlacklistHandler) GetMinuteStats(c *gin.Context) {
 // @Failure 401 {object} response.Response
 // @Failure 403 {object} response.Response
 // @Failure 500 {object} response.Response
-// @Router /api/v1/admin/blacklist/sync [post]
+// @Router /admin/blacklist/sync [post]
 func (h *BlacklistHandler) SyncBlacklistToRedis(c *gin.Context) {
 	ctx := c.Request.Context()
 
