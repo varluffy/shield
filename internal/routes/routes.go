@@ -76,7 +76,6 @@ func SetupRoutes(
 		auth := api.Group("/auth")
 		{
 			auth.POST("/login", userHandler.Login)
-			auth.POST("/test-login", userHandler.TestLogin)
 			auth.POST("/refresh", userHandler.RefreshToken)
 		}
 

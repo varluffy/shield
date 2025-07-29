@@ -66,6 +66,9 @@ auth:
     expires_in: 24h
     refresh_expires: 168h  # 7天
     issuer: "shield"
+  # 验证码配置 - 开发环境支持绕过
+  captcha_mode: "flexible"    # flexible允许开发环境绕过
+  dev_bypass_code: "dev-1234" # 开发环境绕过验证码
 
 # HTTP客户端配置
 http_client:

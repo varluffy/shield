@@ -46,11 +46,15 @@ redis:
   db: 0
   key_prefix: "ultrafit:prod:"
 
-# auth:
-#   jwt:
-#     secret: "${JWT_SECRET}"
-#     expires_in: "24h"
-#     issuer: "ultrafit"
+auth:
+  jwt:
+    secret: "${JWT_SECRET}"
+    expires_in: "24h"
+    refresh_expires: "168h"
+    issuer: "shield"
+  # 验证码配置 - 生产环境强制验证
+  captcha_mode: "strict"      # 生产环境强制验证码
+  dev_bypass_code: ""         # 生产环境不设置绕过码
 
 # http_client:
 #   timeout: 30

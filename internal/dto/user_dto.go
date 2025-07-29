@@ -64,12 +64,6 @@ type LoginRequest struct {
 	Answer    string `json:"answer" binding:"required" example:"1234"`
 }
 
-// TestLoginRequest 测试登录请求（不需要验证码）
-type TestLoginRequest struct {
-	Email    string `json:"email" binding:"required,email" example:"test@example.com"`
-	Password string `json:"password" binding:"required" example:"password123"`
-}
-
 // LoginResponse 登录响应
 type LoginResponse struct {
 	User         UserResponse `json:"user"`

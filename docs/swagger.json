@@ -1203,51 +1203,6 @@
                 }
             }
         },
-        "/auth/test-login": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "测试登录（跳过验证码）",
-                "parameters": [
-                    {
-                        "description": "测试登录凭据",
-                        "name": "credentials",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_varluffy_shield_internal_dto.TestLoginRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_varluffy_shield_pkg_response.Response"
-                        }
-                    }
-                }
-            }
-        },
         "/blacklist/check": {
             "post": {
                 "description": "检查手机号MD5是否在黑名单中",
@@ -3473,23 +3428,6 @@
                     "type": "string",
                     "maxLength": 128,
                     "minLength": 8
-                }
-            }
-        },
-        "github_com_varluffy_shield_internal_dto.TestLoginRequest": {
-            "type": "object",
-            "required": [
-                "email",
-                "password"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string",
-                    "example": "test@example.com"
-                },
-                "password": {
-                    "type": "string",
-                    "example": "password123"
                 }
             }
         },

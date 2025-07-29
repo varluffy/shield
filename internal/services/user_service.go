@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/varluffy/shield/internal/config"
 	"github.com/varluffy/shield/internal/dto"
 	"github.com/varluffy/shield/internal/models"
 	"github.com/varluffy/shield/internal/repositories"
@@ -38,7 +39,6 @@ type UserService interface {
 
 	// 认证相关
 	Login(ctx context.Context, req dto.LoginRequest) (*dto.LoginResponse, error)
-	TestLogin(ctx context.Context, req dto.TestLoginRequest) (*dto.LoginResponse, error)
 	Register(ctx context.Context, req dto.RegisterRequest) (*dto.UserResponse, error)
 	RefreshToken(ctx context.Context, req dto.RefreshTokenRequest) (*dto.RefreshTokenResponse, error)
 
@@ -54,6 +54,7 @@ type UserServiceImpl struct {
 	txManager      transaction.TransactionManager
 	jwtService     auth.JWTService
 	captchaService captcha.CaptchaService
+	config         *config.Config
 }
 
 // NewUserService 创建用户服务
@@ -63,6 +64,7 @@ func NewUserService(
 	txManager transaction.TransactionManager,
 	jwtService auth.JWTService,
 	captchaService captcha.CaptchaService,
+	config *config.Config,
 ) UserService {
 	return &UserServiceImpl{
 		userRepo:       userRepo,
@@ -70,6 +72,7 @@ func NewUserService(
 		txManager:      txManager,
 		jwtService:     jwtService,
 		captchaService: captchaService,
+		config:         config,
 	}
 }
 
@@ -385,16 +388,27 @@ func (s *UserServiceImpl) ListUsers(ctx context.Context, filter dto.UserFilter) 
 func (s *UserServiceImpl) Login(ctx context.Context, req dto.LoginRequest) (*dto.LoginResponse, error) {
 	s.logger.InfoWithTrace(ctx, "User login attempt",
 		zap.String("email", req.Email),
+		zap.String("environment", s.config.App.Environment),
 	)
 
-	// 验证验证码
-	if err := s.captchaService.VerifyCaptcha(ctx, req.CaptchaID, req.Answer); err != nil {
-		s.logger.WarnWithTrace(ctx, "Login failed - invalid captcha",
-			zap.String("email", req.Email),
-			zap.String("captcha_id", req.CaptchaID),
-			zap.Error(err),
-		)
-		return nil, errors.ErrCaptchaInvalid()
+	// 根据环境和配置决定验证码策略
+	if s.shouldRequireCaptcha() {
+		if s.isDevBypass(req.CaptchaID, req.Answer) {
+			s.logger.WarnWithTrace(ctx, "Using development captcha bypass", 
+				zap.String("environment", s.config.App.Environment),
+				zap.String("captcha_id", req.CaptchaID),
+			)
+		} else {
+			// 正常验证码验证
+			if err := s.captchaService.VerifyCaptcha(ctx, req.CaptchaID, req.Answer); err != nil {
+				s.logger.WarnWithTrace(ctx, "Login failed - invalid captcha",
+					zap.String("email", req.Email),
+					zap.String("captcha_id", req.CaptchaID),
+					zap.Error(err),
+				)
+				return nil, errors.ErrCaptchaInvalid()
+			}
+		}
 	}
 
 	// 获取用户
@@ -472,84 +486,24 @@ func (s *UserServiceImpl) Login(ctx context.Context, req dto.LoginRequest) (*dto
 	}, nil
 }
 
-// TestLogin 测试用户登录（跳过验证码）
-func (s *UserServiceImpl) TestLogin(ctx context.Context, req dto.TestLoginRequest) (*dto.LoginResponse, error) {
-	s.logger.InfoWithTrace(ctx, "User test login attempt",
-		zap.String("email", req.Email),
-	)
 
-	// 获取用户
-	user, err := s.userRepo.GetByEmail(ctx, req.Email)
-	if err != nil {
-		if err == repositories.ErrUserNotFound {
-			s.logger.WarnWithTrace(ctx, "Test login failed - user not found",
-				zap.String("email", req.Email),
-			)
-			return nil, errors.ErrInvalidCredentials()
-		}
-		s.logger.ErrorWithTrace(ctx, "Failed to get user for test login",
-			zap.Error(err),
-			zap.String("email", req.Email),
-		)
-		return nil, fmt.Errorf("test login failed: %w", err)
+// shouldRequireCaptcha 判断是否应该验证验证码
+func (s *UserServiceImpl) shouldRequireCaptcha() bool {
+	switch s.config.App.Environment {
+	case "production":
+		return true // 生产环境总是需要验证码
+	case "development", "test":
+		return s.config.Auth.CaptchaMode != "disabled"
+	default:
+		return true // 默认安全策略
 	}
+}
 
-	// 检查用户是否激活
-	if user.Status != "active" {
-		s.logger.WarnWithTrace(ctx, "Test login failed - user inactive",
-			zap.String("email", req.Email),
-			zap.Uint64("user_id", user.ID),
-			zap.String("user_uuid", user.UUID),
-		)
-		return nil, errors.ErrUserInactive()
-	}
-
-	// 验证密码
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
-		s.logger.WarnWithTrace(ctx, "Test login failed - invalid password",
-			zap.String("email", req.Email),
-			zap.Uint64("user_id", user.ID),
-			zap.String("user_uuid", user.UUID),
-		)
-		return nil, errors.ErrInvalidCredentials()
-	}
-
-	// 获取租户UUID（为JWT token使用）
-	tenantUUID := fmt.Sprintf("%d", user.TenantID)
-
-	// 生成JWT token（使用UUID以提高安全性）
-	accessToken, err := s.jwtService.GenerateAccessToken(user.UUID, user.Email, tenantUUID)
-	if err != nil {
-		s.logger.ErrorWithTrace(ctx, "Failed to generate access token",
-			zap.Error(err),
-			zap.Uint64("user_id", user.ID),
-			zap.String("user_uuid", user.UUID),
-		)
-		return nil, errors.ErrInternalError("failed to generate access token")
-	}
-
-	refreshToken, err := s.jwtService.GenerateRefreshToken(user.UUID, tenantUUID)
-	if err != nil {
-		s.logger.ErrorWithTrace(ctx, "Failed to generate refresh token",
-			zap.Error(err),
-			zap.Uint64("user_id", user.ID),
-			zap.String("user_uuid", user.UUID),
-		)
-		return nil, errors.ErrInternalError("failed to generate refresh token")
-	}
-
-	s.logger.InfoWithTrace(ctx, "User test logged in successfully",
-		zap.Uint64("user_id", user.ID),
-		zap.String("user_uuid", user.UUID),
-		zap.String("email", user.Email),
-	)
-
-	return &dto.LoginResponse{
-		User:         *s.modelToResponse(user),
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		ExpiresIn:    3600, // 1小时
-	}, nil
+// isDevBypass 判断是否为开发/测试环境绕过
+func (s *UserServiceImpl) isDevBypass(captchaID, answer string) bool {
+	return (s.config.App.Environment == "development" || s.config.App.Environment == "test") && 
+		   captchaID == "dev-bypass" && 
+		   answer == s.config.Auth.DevBypassCode
 }
 
 // CreateUsersBatch 批量创建用户（事务演示）

@@ -447,18 +447,6 @@ definitions:
     - name
     - password
     type: object
-  github_com_varluffy_shield_internal_dto.TestLoginRequest:
-    properties:
-      email:
-        example: test@example.com
-        type: string
-      password:
-        example: password123
-        type: string
-    required:
-    - email
-    - password
-    type: object
   github_com_varluffy_shield_internal_dto.UpdateApiCredentialRequest:
     properties:
       description:
@@ -1335,35 +1323,6 @@ paths:
           schema:
             $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
       summary: 用户注册
-      tags:
-      - auth
-  /auth/test-login:
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: 测试登录凭据
-        in: body
-        name: credentials
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_varluffy_shield_internal_dto.TestLoginRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/github_com_varluffy_shield_pkg_response.Response'
-      summary: 测试登录（跳过验证码）
       tags:
       - auth
   /blacklist/check:

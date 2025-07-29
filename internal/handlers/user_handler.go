@@ -347,43 +347,6 @@ func (h *UserHandler) Login(c *gin.Context) {
 	h.responseWriter.Success(c, user)
 }
 
-// TestLogin 测试登录（跳过验证码）
-// @Summary 测试登录（跳过验证码）
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Param credentials body dto.TestLoginRequest true "测试登录凭据"
-// @Success 200 {object} response.Response
-// @Failure 400 {object} response.Response
-// @Failure 401 {object} response.Response
-// @Router /auth/test-login [post]
-func (h *UserHandler) TestLogin(c *gin.Context) {
-	var req dto.TestLoginRequest
-
-	// 绑定和验证参数
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.logger.WarnWithTrace(c.Request.Context(), "Invalid request body for test login")
-		h.responseWriter.ValidationError(c, err)
-		return
-	}
-
-	user, err := h.userService.TestLogin(c.Request.Context(), req)
-	if err != nil {
-		h.logger.WarnWithTrace(c.Request.Context(), "Failed to test login",
-			zap.String("email", req.Email),
-			zap.Error(err),
-		)
-		h.responseWriter.Error(c, err)
-		return
-	}
-
-	h.logger.InfoWithTrace(c.Request.Context(), "User test login successfully",
-		zap.String("email", req.Email),
-		zap.String("user_id", user.User.ID),
-	)
-
-	h.responseWriter.Success(c, user)
-}
 
 // Register 用户注册
 // @Summary 用户注册

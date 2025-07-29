@@ -117,7 +117,9 @@ type LogConfig struct {
 
 // AuthConfig 认证配置
 type AuthConfig struct {
-	JWT JWTConfig `mapstructure:"jwt"`
+	JWT            JWTConfig `mapstructure:"jwt"`
+	CaptchaMode    string    `mapstructure:"captcha_mode"`    // "strict", "flexible", "disabled"
+	DevBypassCode  string    `mapstructure:"dev_bypass_code"` // 开发环境绕过验证码
 }
 
 // JWTConfig JWT配置

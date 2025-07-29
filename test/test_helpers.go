@@ -90,6 +90,8 @@ func NewTestConfig() *config.Config {
 				ExpiresIn:      time.Hour,
 				RefreshExpires: time.Hour * 24,
 			},
+			CaptchaMode:   "flexible",  // 测试环境支持绕过
+			DevBypassCode: "test-1234", // 测试环境绕过码
 		},
 		Redis: &config.RedisConfig{
 			Addrs:    []string{"localhost:6379"},
@@ -157,7 +159,9 @@ func NewTestComponents(db *gorm.DB, testLogger *logger.Logger) *TestComponents {
 		userRepo, roleRepo, permissionRepo, tenantRepo, permissionCacheService, testLogger,
 	)
 
-	userService := services.NewUserService(userRepo, testLogger, txManager, jwtService, captchaService)
+	// 创建测试配置
+	testConfig := NewTestConfig()
+	userService := services.NewUserService(userRepo, testLogger, txManager, jwtService, captchaService, testConfig)
 	roleService := services.NewRoleService(roleRepo, permissionRepo, testLogger)
 	fieldPermissionService := services.NewFieldPermissionService(testLogger)
 	permissionAuditService := services.NewPermissionAuditService(permissionAuditRepo, testLogger)

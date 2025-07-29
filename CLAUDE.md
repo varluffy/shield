@@ -258,6 +258,26 @@ make status            # Check service health
 go test -v ./test/ -run TestPermission  # Test specific subsystem
 ```
 
+### 🔐 Environment-Aware Authentication System
+
+**New Unified Login System** (🚨 test-login interface removed for security):
+- **Development Environment**: Supports captcha bypass with `captcha_id: "dev-bypass"` and `answer: "dev-1234"`
+- **Production Environment**: Always requires valid captcha verification
+- **Single Login Endpoint**: `/api/v1/auth/login` handles all environments intelligently
+
+**Security Configuration**:
+```yaml
+# Development (configs/config.dev.yaml)
+auth:
+  captcha_mode: "flexible"    # Allows bypass
+  dev_bypass_code: "dev-1234" # Bypass answer
+
+# Production (configs/config.prod.yaml) 
+auth:
+  captcha_mode: "strict"      # Enforces captcha
+  dev_bypass_code: ""         # No bypass available
+```
+
 ## 🧪 AI Testing Patterns
 
 ### Standard Test Users (Essential for AI Development)
@@ -279,19 +299,30 @@ go run cmd/migrate/*.go -action=list-test-users -config=configs/config.dev.yaml
 
 ### AI Development Testing Pattern
 ```bash
-# 1. Get test token (bypasses captcha) - SYSTEM ADMIN (recommended for development)
-JWT_TOKEN=$(curl -s -X POST "http://localhost:8080/api/v1/auth/test-login" \
+# 1. Get test token (uses development captcha bypass) - SYSTEM ADMIN (recommended for development)
+JWT_TOKEN=$(curl -s -X POST "http://localhost:8080/api/v1/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@system.test","password":"admin123","tenant_id":"0"}' | \
-  jq -r '.data.access_token')
+  -d '{
+    "email":"admin@system.test",
+    "password":"admin123",
+    "tenant_id":"0",
+    "captcha_id":"dev-bypass",
+    "answer":"dev-1234"
+  }' | jq -r '.data.access_token')
 
 # 2. Test with authorization  
 curl -H "Authorization: Bearer $JWT_TOKEN" "http://localhost:8080/api/v1/users/profile"
 
 # 3. For tenant-specific testing
-JWT_TOKEN=$(curl -s -X POST "http://localhost:8080/api/v1/auth/test-login" \
-  -d '{"email":"test@example.com","password":"test123","tenant_id":"1"}' | \
-  jq -r '.data.access_token')
+JWT_TOKEN=$(curl -s -X POST "http://localhost:8080/api/v1/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email":"test@example.com",
+    "password":"test123",
+    "tenant_id":"1",
+    "captcha_id":"dev-bypass",
+    "answer":"dev-1234"
+  }' | jq -r '.data.access_token')
 ```
 
 ### Service Layer Unit Testing (AI-Optimized)
