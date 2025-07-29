@@ -53,9 +53,9 @@ test_api() {
 
 # 1. 测试登录功能
 echo -e "${YELLOW}🔐 步骤1: 测试用户登录${NC}"
-login_response=$(curl -s -X POST "$BASE_URL/auth/test-login" \
+login_response=$(curl -s -X POST "$BASE_URL/auth/login" \
     -H "Content-Type: application/json" \
-    -d "{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$ADMIN_PASSWORD\",\"tenant_id\":\"$TENANT_ID\"}")
+    -d "{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$ADMIN_PASSWORD\",\"tenant_id\":\"$TENANT_ID\",\"captcha_id\":\"dev-bypass\",\"answer\":\"dev-1234\"}")
 
 if echo "$login_response" | grep -q '"code":0'; then
     echo -e "${GREEN}✅ 用户登录成功${NC}"

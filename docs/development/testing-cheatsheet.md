@@ -76,18 +76,29 @@ Tenant: 1
 ### 快速认证
 ```bash
 # 获取系统管理员Token (开发推荐)
-JWT_TOKEN=$(curl -s -X POST "http://localhost:8080/api/v1/auth/test-login" \
+JWT_TOKEN=$(curl -s -X POST "http://localhost:8080/api/v1/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@system.test","password":"admin123","tenant_id":"0"}' | \
-  jq -r '.data.access_token')
+  -d '{
+    "email":"admin@system.test",
+    "password":"admin123",
+    "tenant_id":"0",
+    "captcha_id":"dev-bypass",
+    "answer":"dev-1234"
+  }' | jq -r '.data.access_token')
 
 # 测试API访问
 curl -H "Authorization: Bearer $JWT_TOKEN" "http://localhost:8080/api/v1/users/profile"
 
 # 租户用户Token
-JWT_TOKEN=$(curl -s -X POST "http://localhost:8080/api/v1/auth/test-login" \
-  -d '{"email":"test@example.com","password":"test123","tenant_id":"1"}' | \
-  jq -r '.data.access_token')
+JWT_TOKEN=$(curl -s -X POST "http://localhost:8080/api/v1/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email":"test@example.com",
+    "password":"test123",
+    "tenant_id":"1",
+    "captcha_id":"dev-bypass",
+    "answer":"dev-1234"
+  }' | jq -r '.data.access_token')
 ```
 
 ## 📝 测试代码模板

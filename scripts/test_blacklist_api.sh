@@ -21,9 +21,9 @@ echo -e "${YELLOW}=== 黑名单API测试开始 ===${NC}"
 
 # 1. 登录获取JWT Token
 echo -e "\n${GREEN}1. 登录获取JWT Token...${NC}"
-LOGIN_RESPONSE=$(curl -s -X POST "${BASE_URL}/auth/test-login" \
+LOGIN_RESPONSE=$(curl -s -X POST "${BASE_URL}/auth/login" \
   -H "Content-Type: application/json" \
-  -d "{\"email\":\"${TEST_EMAIL}\",\"password\":\"${TEST_PASSWORD}\",\"tenant_id\":\"${TEST_TENANT_ID}\"}")
+  -d "{\"email\":\"${TEST_EMAIL}\",\"password\":\"${TEST_PASSWORD}\",\"tenant_id\":\"${TEST_TENANT_ID}\",\"captcha_id\":\"dev-bypass\",\"answer\":\"dev-1234\"}")
 
 JWT_TOKEN=$(echo $LOGIN_RESPONSE | jq -r '.data.access_token')
 

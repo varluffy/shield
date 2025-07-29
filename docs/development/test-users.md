@@ -63,34 +63,40 @@ go run cmd/migrate/*.go -action=list-test-users -config=configs/config.dev.yaml
 
 #### 系统管理员登录
 ```bash
-curl -X POST "http://localhost:8080/api/v1/auth/test-login" \\
+curl -X POST "http://localhost:8080/api/v1/auth/login" \\
   -H "Content-Type: application/json" \\
   -d '{
     "email": "admin@system.test",
     "password": "admin123",
-    "tenant_id": "0"
+    "tenant_id": "0",
+    "captcha_id": "dev-bypass",
+    "answer": "dev-1234"
   }'
 ```
 
 #### 租户管理员登录
 ```bash
-curl -X POST "http://localhost:8080/api/v1/auth/test-login" \\
+curl -X POST "http://localhost:8080/api/v1/auth/login" \\
   -H "Content-Type: application/json" \\
   -d '{
     "email": "admin@tenant.test",
     "password": "admin123",
-    "tenant_id": "1"
+    "tenant_id": "1",
+    "captcha_id": "dev-bypass",
+    "answer": "dev-1234"
   }'
 ```
 
 #### 普通用户登录
 ```bash
-curl -X POST "http://localhost:8080/api/v1/auth/test-login" \\
+curl -X POST "http://localhost:8080/api/v1/auth/login" \\
   -H "Content-Type: application/json" \\
   -d '{
     "email": "test@example.com",
     "password": "test123",
-    "tenant_id": "1"
+    "tenant_id": "1",
+    "captcha_id": "dev-bypass",
+    "answer": "dev-1234"
   }'
 ```
 
@@ -98,12 +104,14 @@ curl -X POST "http://localhost:8080/api/v1/auth/test-login" \\
 
 ```bash
 # 1. 获取Token
-JWT_TOKEN=$(curl -s -X POST "http://localhost:8080/api/v1/auth/test-login" \\
+JWT_TOKEN=$(curl -s -X POST "http://localhost:8080/api/v1/auth/login" \\
   -H "Content-Type: application/json" \\
   -d '{
     "email": "admin@system.test",
     "password": "admin123",
-    "tenant_id": "0"
+    "tenant_id": "0",
+    "captcha_id": "dev-bypass",
+    "answer": "dev-1234"
   }' | jq -r '.data.access_token')
 
 # 2. 使用Token访问受保护的API
@@ -142,9 +150,15 @@ func TestWithSystemAdmin(t *testing.T) {
 
 ```bash
 # 系统管理员可以访问任何API，无需检查具体权限
-JWT_TOKEN=$(curl -s -X POST "http://localhost:8080/api/v1/auth/test-login" \\
-  -d '{"email":"admin@system.test","password":"admin123","tenant_id":"0"}' | \\
-  jq -r '.data.access_token')
+JWT_TOKEN=$(curl -s -X POST "http://localhost:8080/api/v1/auth/login" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "email":"admin@system.test",
+    "password":"admin123",
+    "tenant_id":"0",
+    "captcha_id":"dev-bypass",
+    "answer":"dev-1234"
+  }' | jq -r '.data.access_token')
 
 # 访问任何受保护的端点都会成功
 curl -H "Authorization: Bearer $JWT_TOKEN" \\
@@ -156,8 +170,15 @@ curl -H "Authorization: Bearer $JWT_TOKEN" \\
 
 ```bash
 # 租户用户需要相应权限才能访问API
-JWT_TOKEN=$(curl -s -X POST "http://localhost:8080/api/v1/auth/test-login" \\
-  -d '{"email":"admin@tenant.test","password":"admin123","tenant_id":"1"}' | \\
+JWT_TOKEN=$(curl -s -X POST "http://localhost:8080/api/v1/auth/login" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "email":"admin@tenant.test",
+    "password":"admin123",
+    "tenant_id":"1",
+    "captcha_id":"dev-bypass",
+    "answer":"dev-1234"
+  }' | \\
   jq -r '.data.access_token')
 
 # 可能因权限不足而返回403

@@ -151,16 +151,18 @@ func TestUserServiceUnitTests(t *testing.T) {
 		assert.NotEmpty(t, response.Users)
 	})
 
-	t.Run("Test TestLogin Success", func(t *testing.T) {
+	t.Run("Test Login with Dev Bypass Success", func(t *testing.T) {
 		ctx := context.Background()
 		
-		req := dto.TestLoginRequest{
-			Email:    "admin@system.test",
-			Password: "admin123",
-			TenantID: "0",
+		req := dto.LoginRequest{
+			Email:     "admin@system.test",
+			Password:  "admin123",
+			TenantID:  "0",
+			CaptchaID: "dev-bypass",
+			Answer:    "test-1234", // Using test config bypass code
 		}
 
-		response, err := components.UserService.TestLogin(ctx, req)
+		response, err := components.UserService.Login(ctx, req)
 		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotEmpty(t, response.AccessToken)
@@ -169,31 +171,35 @@ func TestUserServiceUnitTests(t *testing.T) {
 		assert.Equal(t, req.Email, response.User.Email)
 	})
 
-	t.Run("Test TestLogin Wrong Password", func(t *testing.T) {
+	t.Run("Test Login Wrong Password", func(t *testing.T) {
 		ctx := context.Background()
 		
-		req := dto.TestLoginRequest{
-			Email:    "admin@system.test",
-			Password: "wrong-password",
-			TenantID: "0",
+		req := dto.LoginRequest{
+			Email:     "admin@system.test",
+			Password:  "wrong-password",
+			TenantID:  "0",
+			CaptchaID: "dev-bypass",
+			Answer:    "test-1234",
 		}
 
-		response, err := components.UserService.TestLogin(ctx, req)
+		response, err := components.UserService.Login(ctx, req)
 		assert.Error(t, err)
 		assert.Nil(t, response)
 		assert.Contains(t, err.Error(), "密码错误")
 	})
 
-	t.Run("Test TestLogin User Not Found", func(t *testing.T) {
+	t.Run("Test Login User Not Found", func(t *testing.T) {
 		ctx := context.Background()
 		
-		req := dto.TestLoginRequest{
-			Email:    "nonexistent@test.com",
-			Password: "password123",
-			TenantID: "1",
+		req := dto.LoginRequest{
+			Email:     "nonexistent@test.com",
+			Password:  "password123",
+			TenantID:  "1",
+			CaptchaID: "dev-bypass",
+			Answer:    "test-1234",
 		}
 
-		response, err := components.UserService.TestLogin(ctx, req)
+		response, err := components.UserService.Login(ctx, req)
 		assert.Error(t, err)
 		assert.Nil(t, response)
 		assert.Contains(t, err.Error(), "用户不存在")
